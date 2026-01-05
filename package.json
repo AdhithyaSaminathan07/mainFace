@@ -9,6 +9,9 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "face-api.js": "^0.22.2",
+    "iron-session": "^8.0.4",
+    "mongoose": "^9.1.1",
     "next": "16.1.1",
     "react": "19.2.3",
     "react-dom": "19.2.3"
