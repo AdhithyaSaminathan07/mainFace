@@ -26,21 +26,34 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Member not found or does not belong to this branch' }, { status: 404 });
         }
 
-        // Check if attendance already marked for today
+        // Check for the last attendance record of the day to determine IN/OUT
         const startOfDay = new Date();
         startOfDay.setHours(0, 0, 0, 0);
 
         const endOfDay = new Date();
         endOfDay.setHours(23, 59, 59, 999);
 
-        const existingAttendance = await Attendance.findOne({
+        const lastAttendance = await Attendance.findOne({
             memberId,
             branchId: session.user.id,
             timestamp: { $gte: startOfDay, $lte: endOfDay }
-        });
+        }).sort({ timestamp: -1 }); // Get the latest one
 
-        if (existingAttendance) {
-            return NextResponse.json({ success: true, message: 'Attendance already marked for today', attendance: existingAttendance });
+        // Determine new status
+        let newType = 'IN'; // Default to IN if no record exists
+        if (lastAttendance && lastAttendance.type === 'IN') {
+            newType = 'OUT';
+        }
+
+        // Optional: Prevent double scanning (e.g., if scanned again within 1 minute)
+        if (lastAttendance) {
+            const timeDiff = new Date().getTime() - new Date(lastAttendance.timestamp).getTime();
+            if (timeDiff < 60 * 1000) { // 1 minute cooldown
+                return NextResponse.json({
+                    success: false,
+                    message: `Already checked ${lastAttendance.type} recently. Please wait a moment.`
+                });
+            }
         }
 
         const newAttendance = await Attendance.create({
@@ -48,10 +61,17 @@ export async function POST(req: NextRequest) {
             branchId: session.user.id,
             confidence,
             status: status || 'Present',
+            type: newType,
             timestamp: new Date()
         });
 
-        return NextResponse.json({ success: true, attendance: newAttendance });
+        // Fetch member name for response message
+        return NextResponse.json({
+            success: true,
+            attendance: newAttendance,
+            type: newType,
+            message: newType === 'IN' ? `Welcome, ${member.fullName}` : `Goodbye, ${member.fullName}`
+        });
 
     } catch (error: any) {
         console.error('Error marking attendance:', error);

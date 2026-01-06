@@ -20,6 +20,12 @@ const AttendanceSchema = new mongoose.Schema({
         enum: ['Present', 'Absent', 'Late'],
         default: 'Present',
     },
+    type: {
+        type: String,
+        enum: ['IN', 'OUT'],
+        default: 'IN',
+        required: true,
+    },
     confidence: {
         type: Number,
         required: true, // Store the match confidence
