@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getIronSession } from 'iron-session';
+import { SessionData, sessionOptions } from '@/lib/session';
 import dbConnect from '@/lib/db';
 import Branch from '@/models/Branch';
 
@@ -8,7 +10,7 @@ export async function POST(request: NextRequest) {
         const { email, password } = await request.json();
 
         console.log('Branch login attempt for:', email);
-        const branch = await Branch.findOne({ email });
+        const branch = await Branch.findOne({ email }).lean();
 
         if (!branch) {
             return NextResponse.json({ message: 'Invalid credentials' }, { status: 401 });
@@ -19,11 +21,21 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ message: 'Invalid credentials' }, { status: 401 });
         }
 
-        return NextResponse.json({
+        const response = NextResponse.json({
             message: 'Login successful',
             branchId: branch._id,
             name: branch.name
         }, { status: 200 });
+
+        const session = await getIronSession<SessionData>(request, response, sessionOptions);
+        session.user = {
+            id: branch._id.toString(),
+            email: branch.email,
+            isAdmin: false, // Branches are not admins
+        };
+        await session.save();
+
+        return response;
 
     } catch (error) {
         console.error('Branch login error:', error);

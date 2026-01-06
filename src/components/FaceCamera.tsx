@@ -36,6 +36,16 @@ export default function FaceCamera({ onFaceDetected, onFaceMatch, labeledDescrip
 
     const loadModels = async () => {
         try {
+            // Check if models are already loaded to prevent re-fetching
+            if (faceapi.nets.ssdMobilenetv1.isLoaded &&
+                faceapi.nets.faceLandmark68Net.isLoaded &&
+                faceapi.nets.faceRecognitionNet.isLoaded) {
+                setIsModelLoaded(true);
+                setMessage('Starting camera...');
+                startVideo();
+                return;
+            }
+
             const MODEL_URL = '/models';
             await Promise.all([
                 faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),

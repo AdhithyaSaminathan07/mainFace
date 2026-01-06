@@ -71,7 +71,7 @@ export default function FaceEnrollModal({ isOpen, onClose, onEnroll }: FaceEnrol
 
                                 {/* Body */}
                                 <div className="p-6">
-                                    <div className="relative aspect-video rounded-xl overflow-hidden bg-black border border-gray-800 shadow-inner">
+                                    <div className="relative aspect-[4/3] rounded-xl overflow-hidden bg-black border border-gray-800 shadow-inner">
                                         {isCaptured && (
                                             <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in zoom-in duration-300">
                                                 <CheckCircleIcon className="w-20 h-20 text-green-400 mb-4 animate-bounce" />
@@ -112,8 +112,8 @@ export default function FaceEnrollModal({ isOpen, onClose, onEnroll }: FaceEnrol
                                         <div className="h-4 w-full bg-gray-800 rounded-full overflow-hidden border border-gray-700">
                                             <div
                                                 className={`h-full transition-all duration-300 ease-out ${qualityScore > 80 ? 'bg-gradient-to-r from-green-500 to-emerald-400' :
-                                                        qualityScore > 50 ? 'bg-gradient-to-r from-yellow-500 to-orange-400' :
-                                                            'bg-gradient-to-r from-red-500 to-pink-500'
+                                                    qualityScore > 50 ? 'bg-gradient-to-r from-yellow-500 to-orange-400' :
+                                                        'bg-gradient-to-r from-red-500 to-pink-500'
                                                     }`}
                                                 style={{ width: `${qualityScore}%` }}
                                             />
