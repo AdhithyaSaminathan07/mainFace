@@ -1,3 +1,5 @@
+import { getIronSession } from 'iron-session';
+import { cookies } from 'next/headers';
 import type { SessionOptions } from 'iron-session';
 
 export const sessionOptions: SessionOptions = {
@@ -19,3 +21,8 @@ export interface SessionData {
 export const defaultSession: SessionData = {
     user: undefined,
 };
+
+export async function getSession() {
+    const cookieStore = await cookies();
+    return getIronSession<SessionData>(cookieStore, sessionOptions);
+}
