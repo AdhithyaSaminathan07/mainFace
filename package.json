@@ -9,6 +9,8 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@headlessui/react": "^2.2.9",
+    "@heroicons/react": "^2.2.0",
     "face-api.js": "^0.22.2",
     "iron-session": "^8.0.4",
     "mongoose": "^9.1.1",
