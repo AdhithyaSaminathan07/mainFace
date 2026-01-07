@@ -2,27 +2,25 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import AdminLayout from '@/components/admin/AdminLayout';
+import AddBranchModal from '@/components/admin/AddBranchModal';
 
 type Branch = {
     _id: string;
     name: string;
-    email?: string;
+    email: string;
     password?: string;
 };
 
 export default function AdminDashboard() {
     const [branches, setBranches] = useState<Branch[]>([]);
 
-    // Form State
-    const [newBranch, setNewBranch] = useState('');
-    const [newBranchEmail, setNewBranchEmail] = useState('');
-    const [newBranchPassword, setNewBranchPassword] = useState('');
+    // Modal State
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editingBranch, setEditingBranch] = useState<Branch | null>(null);
 
     // UI State
     const [loading, setLoading] = useState(true);
-    const [showPassword, setShowPassword] = useState(false);
-    const [editingId, setEditingId] = useState<string | null>(null);
-
     const router = useRouter();
 
     // Check auth
@@ -48,38 +46,29 @@ export default function AdminDashboard() {
         }
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!newBranch || !newBranchEmail || !newBranchPassword) return;
-
-        const payload = {
-            name: newBranch,
-            email: newBranchEmail,
-            password: newBranchPassword
-        };
-
+    const handleSaveBranch = async (data: { name: string; email: string; password?: string }) => {
         let res;
-        if (editingId) {
-            // Update existing
-            res = await fetch(`/api/branches/${editingId}`, {
+        if (editingBranch) {
+            res = await fetch(`/api/branches/${editingBranch._id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
+                body: JSON.stringify(data),
             });
         } else {
-            // Create new
             res = await fetch('/api/branches', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
+                body: JSON.stringify(data),
             });
         }
 
         if (res.ok) {
-            resetForm();
             fetchBranches();
+            setIsModalOpen(false);
+            setEditingBranch(null);
         } else {
-            alert('Failed to save branch (duplicate name/email?)');
+            alert('Failed to save branch (check if name/email already exists)');
+            throw new Error('Failed to save');
         }
     };
 
@@ -97,21 +86,14 @@ export default function AdminDashboard() {
         }
     };
 
-    const startEdit = (branch: Branch) => {
-        setEditingId(branch._id);
-        setNewBranch(branch.name);
-        setNewBranchEmail(branch.email || '');
-        setNewBranchPassword(branch.password || ''); // Note: Password might not be returned in real app for security, but here we likely don't have it or it's hashed. 
-        // If password is not returned, the user might need to enter a new one to update it.
-        // For this simple app, we assume we might overwrite it.
+    const openAddModal = () => {
+        setEditingBranch(null);
+        setIsModalOpen(true);
     };
 
-    const resetForm = () => {
-        setEditingId(null);
-        setNewBranch('');
-        setNewBranchEmail('');
-        setNewBranchPassword('');
-        setShowPassword(false);
+    const openEditModal = (branch: Branch) => {
+        setEditingBranch(branch);
+        setIsModalOpen(true);
     };
 
     const handleLogout = async () => {
@@ -134,149 +116,106 @@ export default function AdminDashboard() {
     }
 
     return (
-        <div className="flex min-h-screen bg-slate-50">
-            {/* Sidebar */}
-            <aside className="fixed left-0 top-0 z-10 h-full w-64 bg-[#1a1f37] text-white transition-all">
-                <div className="flex h-16 items-center border-b border-white/10 px-6 font-bold text-lg tracking-wide">
-                    Face Admin
+        <AdminLayout
+            title="Overview"
+            actions={
+                <div className="flex items-center gap-4">
+                    <span className="text-sm font-medium text-slate-500 hidden sm:inline">Admin</span>
+                    <button
+                        onClick={handleLogout}
+                        className="rounded-full bg-red-50 px-4 py-1.5 text-xs font-semibold text-red-600 transition-colors hover:bg-red-100"
+                    >
+                        Logout
+                    </button>
                 </div>
-                <nav className="p-4 space-y-2">
-                    <a href="#" className="flex items-center gap-3 rounded-lg bg-blue-600 px-4 py-3 text-sm font-medium text-white shadow-lg shadow-blue-500/20 transition-all">
-                        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
-                        Dashboard
-                    </a>
-                </nav>
-            </aside>
-
-            {/* Main Content */}
-            <main className="ml-64 flex-1">
-                {/* Header */}
-                <header className="sticky top-0 z-10 flex h-16 items-center justify-between bg-white/80 px-8 shadow-sm backdrop-blur-md">
-                    <h2 className="text-xl font-bold text-slate-800">Overview</h2>
-                    <div className="flex items-center gap-4">
-                        <span className="text-sm font-medium text-slate-500">Admin</span>
-                        <button
-                            onClick={handleLogout}
-                            className="rounded-full bg-red-50 px-4 py-1.5 text-xs font-semibold text-red-600 transition-colors hover:bg-red-100"
-                        >
-                            Logout
-                        </button>
+            }
+        >
+            {/* Stats Section */}
+            <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-3">
+                <div className="rounded-xl bg-white p-6 shadow-sm border border-slate-100 relative overflow-hidden">
+                    <div className="relative z-10">
+                        <h3 className="text-sm font-medium text-slate-500">Total Branches</h3>
+                        <p className="mt-2 text-3xl font-bold text-slate-800">{branches.length}</p>
                     </div>
-                </header>
-
-                <div className="p-8">
-                    {/* Stats Section Placeholder */}
-                    <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-3">
-                        <div className="rounded-xl bg-white p-6 shadow-sm border border-slate-100">
-                            <h3 className="text-sm font-medium text-slate-500">Total Branches</h3>
-                            <p className="mt-2 text-3xl font-bold text-slate-800">{branches.length}</p>
-                        </div>
+                    <div className="absolute top-0 right-0 p-6 opacity-5">
+                        <svg className="w-24 h-24" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" /></svg>
                     </div>
+                </div>
+            </div>
 
-                    {/* Branch Management Section */}
-                    <section className="rounded-xl bg-white shadow-sm border border-slate-100 overflow-hidden">
-                        <div className="border-b border-slate-100 px-6 py-4 flex justify-between items-center bg-gray-50/50">
-                            <h3 className="font-semibold text-slate-800">
-                                {editingId ? 'Edit Branch' : 'Add New Branch'}
-                            </h3>
-                            {editingId && (
-                                <button onClick={resetForm} className="text-xs text-slate-500 underline">Cancel Edit</button>
-                            )}
-                        </div>
+            {/* Branch Management Section */}
+            <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-bold text-slate-800">Your Branches</h3>
+                <button
+                    onClick={openAddModal}
+                    className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-lg shadow-blue-500/20 hover:bg-blue-700 transition-all"
+                >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
+                    Add Branch
+                </button>
+            </div>
 
-                        <div className="p-6">
-                            <form onSubmit={handleSubmit} className="mb-8 grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                                <div>
-                                    <label className="block text-xs font-semibold text-slate-500 mb-1">Branch Name</label>
-                                    <input
-                                        type="text"
-                                        placeholder="e.g. Downtown"
-                                        className="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm transition-all focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                                        value={newBranch}
-                                        onChange={(e) => setNewBranch(e.target.value)}
-                                        required
-                                    />
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                {branches.map((branch) => (
+                    <div key={branch._id} className="group relative rounded-xl bg-white p-6 shadow-sm border border-slate-100 hover:shadow-md transition-all hover:border-blue-100">
+                        <div className="flex items-start justify-between">
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="h-10 w-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">
+                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-semibold text-slate-500 mb-1">Email</label>
-                                    <input
-                                        type="email"
-                                        placeholder="branch@example.com"
-                                        className="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm transition-all focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                                        value={newBranchEmail}
-                                        onChange={(e) => setNewBranchEmail(e.target.value)}
-                                        required
-                                    />
+                                    <h4 className="font-semibold text-slate-800">{branch.name}</h4>
+                                    <p className="text-xs text-slate-500">Active</p>
                                 </div>
-                                <div className="relative">
-                                    <label className="block text-xs font-semibold text-slate-500 mb-1">Password</label>
-                                    <input
-                                        type={showPassword ? "text" : "password"}
-                                        placeholder="••••••••"
-                                        className="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm transition-all focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                                        value={newBranchPassword}
-                                        onChange={(e) => setNewBranchPassword(e.target.value)}
-                                        required
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowPassword(!showPassword)}
-                                        className="absolute right-3 top-8 text-slate-400 hover:text-slate-600"
-                                    >
-                                        {showPassword ? (
-                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>
-                                        ) : (
-                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                                        )}
-                                    </button>
-                                </div>
+                            </div>
+
+                            <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
                                 <button
-                                    type="submit"
-                                    className={`rounded-lg px-6 py-2.5 text-sm font-medium text-white shadow-md transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 ${editingId ? 'bg-orange-600 hover:bg-orange-700 focus:ring-orange-500' : 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500 shadow-blue-500/20'}`}
+                                    onClick={() => openEditModal(branch)}
+                                    className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded"
                                 >
-                                    {editingId ? 'Update Branch' : 'Add Branch'}
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                                 </button>
-                            </form>
-
-                            <div className="rounded-lg border border-slate-100">
-                                <div className="bg-slate-50/50 px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 grid grid-cols-12 gap-4">
-                                    <div className="col-span-4">Branch Name</div>
-                                    <div className="col-span-5">Email</div>
-                                    <div className="col-span-3 text-right">Actions</div>
-                                </div>
-                                {branches.length === 0 ? (
-                                    <div className="p-8 text-center text-slate-400 text-sm">
-                                        No branches found. Add one to get started.
-                                    </div>
-                                ) : (
-                                    <ul className="divide-y divide-slate-100">
-                                        {branches.map((branch) => (
-                                            <li key={branch._id} className="group grid grid-cols-12 gap-4 items-center px-6 py-4 transition-colors hover:bg-slate-50">
-                                                <div className="col-span-4 font-medium text-slate-700 group-hover:text-slate-900">{branch.name}</div>
-                                                <div className="col-span-5 text-sm text-slate-500">{branch.email}</div>
-                                                <div className="col-span-3 text-right flex justify-end gap-2">
-                                                    <button
-                                                        onClick={() => startEdit(branch)}
-                                                        className="rounded px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50 transition-colors"
-                                                    >
-                                                        Edit
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleDelete(branch._id)}
-                                                        className="rounded px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors"
-                                                    >
-                                                        Delete
-                                                    </button>
-                                                </div>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                )}
+                                <button
+                                    onClick={() => handleDelete(branch._id)}
+                                    className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded"
+                                >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                </button>
                             </div>
                         </div>
-                    </section>
-                </div>
-            </main>
-        </div>
+
+                        <div className="mt-2 space-y-2">
+                            <div className="flex items-center gap-2 text-sm text-slate-600">
+                                <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                                <span className="truncate">{branch.email}</span>
+                            </div>
+                        </div>
+                    </div>
+                ))}
+
+                {/* Add New Card (Empty State) */}
+                {branches.length === 0 && (
+                    <div
+                        onClick={openAddModal}
+                        className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/50 p-6 text-center hover:bg-slate-50 hover:border-blue-300 transition-all cursor-pointer h-full min-h-[160px]"
+                    >
+                        <div className="h-10 w-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-400 mb-3">
+                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
+                        </div>
+                        <h4 className="font-semibold text-slate-600">Add First Branch</h4>
+                        <p className="text-xs text-slate-500 mt-1">Create a new location to manage</p>
+                    </div>
+                )}
+            </div>
+
+            <AddBranchModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                onSave={handleSaveBranch}
+                initialData={editingBranch}
+                isEditing={!!editingBranch}
+            />
+        </AdminLayout>
     );
 }
