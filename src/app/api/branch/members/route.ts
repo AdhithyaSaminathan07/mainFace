@@ -52,9 +52,41 @@ export async function GET(req: NextRequest) {
             .select('fullName employeeId role faceDescriptor branchId');
 
         return NextResponse.json({ success: true, members });
-
     } catch (error: any) {
         console.error('Error fetching members:', error);
+        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    }
+}
+
+export async function DELETE(req: NextRequest) {
+    try {
+        await dbConnect();
+        const session = await getSession();
+
+        if (!session?.user?.id) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        const { searchParams } = new URL(req.url);
+        const id = searchParams.get('id');
+
+        if (!id) {
+            return NextResponse.json({ error: 'Member ID is required' }, { status: 400 });
+        }
+
+        const deletedMember = await Member.findOneAndDelete({
+            _id: id,
+            branchId: session.user.id
+        });
+
+        if (!deletedMember) {
+            return NextResponse.json({ error: 'Member not found or unauthorized' }, { status: 404 });
+        }
+
+        return NextResponse.json({ success: true, message: 'Member deleted successfully' });
+
+    } catch (error: any) {
+        console.error('Error deleting member:', error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 }
