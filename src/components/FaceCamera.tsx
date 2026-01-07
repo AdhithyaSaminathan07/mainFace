@@ -106,7 +106,7 @@ export default function FaceCamera({ onFaceDetected, onFaceMatch, labeledDescrip
             const startTime = performance.now();
 
             // Detect single face
-            const detection = await faceapi.detectSingleFace(videoRef.current, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.8 }))
+            const detection = await faceapi.detectSingleFace(videoRef.current, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.6 }))
                 .withFaceLandmarks()
                 .withFaceDescriptor();
 
@@ -244,7 +244,7 @@ export default function FaceCamera({ onFaceDetected, onFaceMatch, labeledDescrip
 
                             if (bestMatch.label !== 'unknown') {
                                 stabilityCounter.current++;
-                                if (stabilityCounter.current > 5) { // Faster for matching
+                                if (stabilityCounter.current > 2) { // Faster for matching
                                     setMessage(`Welcome, ${bestMatch.label.split('(')[0]}`); // Hacky label parse
                                     if (onFaceMatch) {
                                         onFaceMatch(bestMatch);
@@ -266,7 +266,7 @@ export default function FaceCamera({ onFaceDetected, onFaceMatch, labeledDescrip
             }
 
             // Loop
-            setTimeout(detectFace, 100);
+            setTimeout(detectFace, 30);
         };
 
         detectFace();
@@ -274,10 +274,10 @@ export default function FaceCamera({ onFaceDetected, onFaceMatch, labeledDescrip
 
 
     return (
-        <div className="relative w-full h-full bg-gray-900 rounded-xl overflow-hidden shadow-2xl">
+        <div className="relative w-full h-full bg-gray-100 rounded-xl overflow-hidden shadow-sm">
             {!isModelLoaded && (
-                <div className="absolute inset-0 z-20 flex items-center justify-center bg-gray-900 text-white">
-                    <p className="animate-pulse">{message}</p>
+                <div className="absolute inset-0 z-20 flex items-center justify-center bg-gray-100 text-gray-500">
+                    <p className="animate-pulse font-medium">{message}</p>
                 </div>
             )}
 
@@ -297,7 +297,7 @@ export default function FaceCamera({ onFaceDetected, onFaceMatch, labeledDescrip
 
             {/* Overlay Message */}
             <div className="absolute bottom-10 left-0 right-0 z-10 flex justify-center">
-                <div className="bg-black/60 backdrop-blur-md px-6 py-3 rounded-full text-white font-medium shadow-lg">
+                <div className="bg-white/80 backdrop-blur-md px-6 py-3 rounded-full text-gray-900 font-semibold shadow-lg border border-white/50">
                     {message}
                 </div>
             </div>

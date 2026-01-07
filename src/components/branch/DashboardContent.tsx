@@ -103,7 +103,7 @@ export default function DashboardContent() {
 
     return (
         <div className="h-[calc(100vh-8rem)]">
-            <Toaster position="top-right" />
+            <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
 
             <FaceScanModal
                 isOpen={isScannerOpen}
