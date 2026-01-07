@@ -49,12 +49,12 @@ export default function FaceScanModal({ isOpen, onClose, onFaceMatch, labeledDes
                             leaveFrom="opacity-100 scale-100"
                             leaveTo="opacity-0 scale-95"
                         >
-                            <Dialog.Panel className="w-full max-w-5xl transform overflow-hidden rounded-3xl bg-white text-left align-middle shadow-2xl transition-all border border-gray-100">
+                            <Dialog.Panel className="w-full max-w-6xl transform overflow-hidden rounded-xl bg-white text-left align-middle shadow-2xl transition-all border border-gray-100 flex flex-col max-h-[90vh]">
                                 {/* Header */}
-                                <div className="flex justify-between items-center p-6 border-b border-gray-100 bg-gray-50/50">
-                                    <Dialog.Title as="h3" className="text-2xl font-bold leading-6 text-gray-900 flex items-center gap-3">
-                                        <div className="p-2 bg-green-100 rounded-lg">
-                                            <FaceSmileIcon className="w-6 h-6 text-green-600" />
+                                <div className="flex justify-between items-center p-4 border-b border-gray-100 bg-gray-50/50 shrink-0">
+                                    <Dialog.Title as="h3" className="text-xl font-bold leading-6 text-gray-900 flex items-center gap-2">
+                                        <div className="p-1.5 bg-green-100 rounded-lg">
+                                            <FaceSmileIcon className="w-5 h-5 text-green-600" />
                                         </div>
                                         Attendance Scanner
                                     </Dialog.Title>
@@ -64,8 +64,8 @@ export default function FaceScanModal({ isOpen, onClose, onFaceMatch, labeledDes
                                 </div>
 
                                 {/* Body */}
-                                <div className="p-8">
-                                    <div className="relative aspect-video w-full rounded-2xl overflow-hidden bg-gray-100 border border-gray-200 shadow-inner ring-4 ring-gray-50 cursor-crosshair">
+                                <div className="p-0 sm:p-6 flex-1 overflow-hidden flex flex-col">
+                                    <div className="relative w-full h-[60vh] sm:h-[600px] bg-gray-900 overflow-hidden sm:rounded-2xl cursor-crosshair sm:border sm:border-gray-200 sm:shadow-inner sm:ring-4 sm:ring-gray-50">
                                         <FaceCamera
                                             mode="scan"
                                             labeledDescriptors={labeledDescriptors}
@@ -73,7 +73,7 @@ export default function FaceScanModal({ isOpen, onClose, onFaceMatch, labeledDes
                                             showAdvancedVisuals={true}
                                         />
                                     </div>
-                                    <div className="text-center mt-6">
+                                    <div className="text-center p-4 bg-white shrink-0">
                                         <h4 className="text-lg font-medium text-gray-900">Position your face within the frame</h4>
                                         <p className="text-gray-500 text-sm mt-1">
                                             The system will automatically mark your attendance when recognized.
