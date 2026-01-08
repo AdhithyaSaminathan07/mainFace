@@ -10,30 +10,49 @@ export default function AddAttendanceContent() {
     const [formData, setFormData] = useState({
         fullName: '',
         phone: '',
-        role: 'Staff',
+        role: '',
         employeeId: '',
     });
+    const [availableRoles, setAvailableRoles] = useState<string[]>([]);
+    const [isLoadingRoles, setIsLoadingRoles] = useState(true);
     const [faceDescriptor, setFaceDescriptor] = useState<number[] | null>(null);
     const [capturedImage, setCapturedImage] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isEnrollModalOpen, setIsEnrollModalOpen] = useState(false);
 
-    // Preload models
+    // Preload models and fetch roles
     useEffect(() => {
-        const loadModels = async () => {
+        const loadData = async () => {
             const MODEL_URL = '/models';
             try {
+                // Load models
                 await Promise.all([
                     faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
                     faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
                     faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
                 ]);
                 console.log('Face models preloaded');
+
+                // Fetch roles
+                const res = await fetch('/api/branch/details');
+                const data = await res.json();
+                if (data.success && data.branch.roles && data.branch.roles.length > 0) {
+                    setAvailableRoles(data.branch.roles);
+                    setFormData(prev => ({ ...prev, role: data.branch.roles[0] }));
+                } else {
+                    // Fallback if no roles assigned
+                    setAvailableRoles(['Staff']);
+                    setFormData(prev => ({ ...prev, role: 'Staff' }));
+                }
             } catch (err) {
-                console.error('Failed to preload models', err);
+                console.error('Failed to load data', err);
+                // Fallback
+                setAvailableRoles(['Staff']);
+            } finally {
+                setIsLoadingRoles(false);
             }
         };
-        loadModels();
+        loadData();
     }, []);
 
     const handleFaceDetected = (descriptor: Float32Array, image: string) => {
@@ -69,7 +88,7 @@ export default function AddAttendanceContent() {
             }
 
             alert('Member registered successfully!');
-            setFormData({ fullName: '', phone: '', role: 'Staff', employeeId: '' });
+            setFormData({ fullName: '', phone: '', role: availableRoles[0] || 'Staff', employeeId: '' });
             setFaceDescriptor(null);
             setCapturedImage(null);
 
@@ -135,11 +154,11 @@ export default function AddAttendanceContent() {
                                 className="w-full rounded-lg bg-gray-50 border border-gray-200 px-4 py-2.5 text-sm text-gray-900 focus:bg-white focus:border-blue-500 outline-none"
                                 value={formData.role}
                                 onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                                disabled={isLoadingRoles}
                             >
-                                <option value="Staff">Staff</option>
-                                <option value="Manager">Manager</option>
-                                <option value="Admin">Admin</option>
-                                <option value="Security">Security</option>
+                                {availableRoles.map((role) => (
+                                    <option key={role} value={role}>{role}</option>
+                                ))}
                             </select>
                         </div>
                     </div>

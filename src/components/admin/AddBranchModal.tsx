@@ -1,12 +1,13 @@
 
 import { Fragment, useEffect, useState } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
-import { XMarkIcon, BuildingOffice2Icon } from '@heroicons/react/24/outline';
+import { XMarkIcon, BuildingOffice2Icon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 
 interface BranchData {
     name: string;
     email: string;
     password?: string;
+    roles: string[];
 }
 
 interface AddBranchModalProps {
@@ -21,25 +22,51 @@ export default function AddBranchModal({ isOpen, onClose, onSave, initialData, i
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [roles, setRoles] = useState<string[]>([]);
+    const [roleInput, setRoleInput] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
         if (isOpen && initialData) {
             setName(initialData.name);
             setEmail(initialData.email);
+            setRoles(initialData.roles || []);
             setPassword(''); // Don't pre-fill password for security/edit flow
         } else if (isOpen) {
             setName('');
             setEmail('');
+            setRoles([]);
             setPassword('');
         }
+        setRoleInput('');
     }, [isOpen, initialData]);
+
+    const addRole = () => {
+        const trimmed = roleInput.trim();
+        if (trimmed && !roles.includes(trimmed)) {
+            setRoles([...roles, trimmed]);
+            setRoleInput('');
+        }
+    };
+
+    const handleRoleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter' || e.key === ',') {
+            e.preventDefault();
+            addRole();
+        }
+    };
+
+    const removeRole = (roleToRemove: string) => {
+        setRoles(roles.filter(role => role !== roleToRemove));
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
+        setLoading(true);
         try {
-            await onSave({ name, email, password });
+            await onSave({ name, email, password, roles });
             onClose();
         } catch (error) {
             console.error(error);
@@ -118,17 +145,66 @@ export default function AddBranchModal({ isOpen, onClose, onSave, initialData, i
                                     </div>
 
                                     <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Roles</label>
+                                        <div className="flex flex-wrap gap-2 mb-2">
+                                            {roles.map((role) => (
+                                                <span key={role} className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                    {role}
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => removeRole(role)}
+                                                        className="text-blue-600 hover:text-blue-800 focus:outline-none"
+                                                    >
+                                                        <XMarkIcon className="w-3 h-3" />
+                                                    </button>
+                                                </span>
+                                            ))}
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <input
+                                                type="text"
+                                                value={roleInput}
+                                                onChange={(e) => setRoleInput(e.target.value)}
+                                                onKeyDown={handleRoleKeyDown}
+                                                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                                placeholder="Type a role (e.g. Sales)"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={addRole}
+                                                className="px-4 py-2 bg-blue-50 text-blue-600 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors"
+                                            >
+                                                Add
+                                            </button>
+                                        </div>
+                                        <p className="mt-1 text-xs text-slate-500">Press Enter, comma, or click Add.</p>
+                                    </div>
+
+                                    <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">
                                             {isEditing ? 'New Password (Optional)' : 'Password'}
                                         </label>
-                                        <input
-                                            type="password"
-                                            value={password}
-                                            onChange={(e) => setPassword(e.target.value)}
-                                            required={!isEditing}
-                                            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                                            placeholder={isEditing ? 'Leave blank to keep current' : '••••••••'}
-                                        />
+                                        <div className="relative">
+                                            <input
+                                                type={showPassword ? 'text' : 'password'}
+                                                value={password}
+                                                onChange={(e) => setPassword(e.target.value)}
+                                                required={!isEditing}
+                                                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 pr-10"
+                                                placeholder={isEditing ? 'Leave blank to keep current' : '••••••••'}
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowPassword(!showPassword)}
+                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                                            >
+                                                {showPassword ? (
+                                                    <EyeSlashIcon className="w-5 h-5" />
+                                                ) : (
+                                                    <EyeIcon className="w-5 h-5" />
+                                                )}
+                                            </button>
+                                        </div>
                                     </div>
 
                                     <div className="mt-8 flex justify-end gap-3">

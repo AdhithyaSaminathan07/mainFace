@@ -16,13 +16,13 @@ export async function GET() {
 export async function POST(request: NextRequest) {
     try {
         await dbConnect();
-        const { name, email, password } = await request.json();
+        const { name, email, password, roles } = await request.json();
 
         if (!name || !email || !password) {
             return NextResponse.json({ message: 'Name, Email, and Password are required' }, { status: 400 });
         }
 
-        const branch = await Branch.create({ name, email, password });
+        const branch = await Branch.create({ name, email, password, roles: roles || [] });
         return NextResponse.json(branch, { status: 201 });
     } catch (error: any) {
         console.error('Create branch error:', error);

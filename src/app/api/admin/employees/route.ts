@@ -1,5 +1,4 @@
-
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import mongoose from 'mongoose';
 import Member from '@/models/Member';
 import Attendance from '@/models/Attendance';
@@ -11,12 +10,19 @@ const connectDB = async () => {
     await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/face-app');
 };
 
-export async function GET() {
+export async function GET(req: NextRequest) {
     try {
         await connectDB();
+        const { searchParams } = new URL(req.url);
+        const branchId = searchParams.get('branchId');
 
-        // Fetch all members with their branch details
-        const members = await Member.find().populate('branchId', 'name').lean();
+        const query: any = {};
+        if (branchId) {
+            query.branchId = branchId;
+        }
+
+        // Fetch members with filter
+        const members = await Member.find(query).populate('branchId', 'name').lean();
 
         // Get start and end of today
         const startOfDay = new Date();

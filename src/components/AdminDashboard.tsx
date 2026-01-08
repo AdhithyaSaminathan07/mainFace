@@ -10,6 +10,7 @@ type Branch = {
     name: string;
     email: string;
     password?: string;
+    roles?: string[];
 };
 
 export default function AdminDashboard() {
@@ -46,7 +47,7 @@ export default function AdminDashboard() {
         }
     };
 
-    const handleSaveBranch = async (data: { name: string; email: string; password?: string }) => {
+    const handleSaveBranch = async (data: { name: string; email: string; password?: string; roles: string[] }) => {
         let res;
         if (editingBranch) {
             res = await fetch(`/api/branches/${editingBranch._id}`, {
@@ -165,7 +166,14 @@ export default function AdminDashboard() {
                                 </div>
                                 <div>
                                     <h4 className="font-semibold text-slate-800">{branch.name}</h4>
-                                    <p className="text-xs text-slate-500">Active</p>
+                                    <div className="flex flex-wrap gap-1 mt-1">
+                                        <span className="text-xs text-slate-500">Active</span>
+                                        {branch.roles && branch.roles.map((role, idx) => (
+                                            <span key={idx} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700">
+                                                {role}
+                                            </span>
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
 
@@ -213,7 +221,11 @@ export default function AdminDashboard() {
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
                 onSave={handleSaveBranch}
-                initialData={editingBranch}
+                initialData={editingBranch ? {
+                    name: editingBranch.name,
+                    email: editingBranch.email,
+                    roles: editingBranch.roles || []
+                } : null}
                 isEditing={!!editingBranch}
             />
         </AdminLayout>

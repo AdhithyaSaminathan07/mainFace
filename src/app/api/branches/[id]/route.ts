@@ -9,7 +9,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     try {
         await dbConnect();
         const { id } = await params;
-        const { name, email, password } = await request.json();
+        const { name, email, password, roles } = await request.json();
 
         if (!id) return NextResponse.json({ message: 'Branch ID required' }, { status: 400 });
 
@@ -17,6 +17,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         if (name) updateData.name = name;
         if (email) updateData.email = email;
         if (password) updateData.password = password;
+        if (roles) updateData.roles = roles;
 
         const updatedBranch = await Branch.findByIdAndUpdate(id, updateData, { new: true });
 

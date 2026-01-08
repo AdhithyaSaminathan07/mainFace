@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import AdminLayout from '@/components/admin/AdminLayout';
-import { UserCircleIcon, BuildingOfficeIcon } from '@heroicons/react/24/outline';
+import { UserCircleIcon, BuildingOfficeIcon, ChevronDownIcon, FunnelIcon } from '@heroicons/react/24/outline';
 
 type Employee = {
     _id: string;
@@ -19,6 +19,8 @@ type Employee = {
 export default function EmployeesContent() {
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [loading, setLoading] = useState(true);
+    const [branches, setBranches] = useState<{ _id: string, name: string }[]>([]);
+    const [selectedBranch, setSelectedBranch] = useState('');
     const router = useRouter();
 
     useEffect(() => {
@@ -33,13 +35,16 @@ export default function EmployeesContent() {
                     return;
                 }
 
-                const res = await fetch('/api/admin/employees');
-                if (res.ok) {
-                    const data = await res.json();
-                    if (data.success) {
-                        setEmployees(data.employees);
+                // Fetch branches
+                const branchRes = await fetch('/api/branches');
+                if (branchRes.ok) {
+                    const branchData = await branchRes.json();
+                    if (Array.isArray(branchData)) {
+                        setBranches(branchData);
                     }
                 }
+
+                await fetchEmployees();
             } catch (error) {
                 console.error("Failed to load data", error);
             } finally {
@@ -49,6 +54,27 @@ export default function EmployeesContent() {
 
         checkAuthAndFetch();
     }, [router]);
+
+    const fetchEmployees = async (branchId = selectedBranch) => {
+        try {
+            const query = branchId ? `?branchId=${branchId}` : '';
+            const res = await fetch(`/api/admin/employees${query}`);
+            if (res.ok) {
+                const data = await res.json();
+                if (data.success) {
+                    setEmployees(data.employees);
+                }
+            }
+        } catch (error) {
+            console.error("Failed to fetch employees", error);
+        }
+    };
+
+    const handleBranchFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const branchId = e.target.value;
+        setSelectedBranch(branchId);
+        fetchEmployees(branchId);
+    };
 
     const handleLogout = async () => {
         await fetch('/api/auth/logout', { method: 'POST' });
@@ -85,8 +111,24 @@ export default function EmployeesContent() {
             }
         >
             <div className="rounded-xl bg-white shadow-sm border border-slate-100 overflow-hidden">
-                <div className="border-b border-slate-100 px-6 py-4 bg-gray-50/50">
+                <div className="border-b border-slate-100 px-6 py-4 bg-gray-50/50 flex flex-col sm:flex-row justify-between items-center gap-4">
                     <h3 className="font-semibold text-slate-800">Global Employee List</h3>
+                    <div className="flex items-center gap-3">
+                        <div className="relative">
+                            <FunnelIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                            <select
+                                value={selectedBranch}
+                                onChange={handleBranchFilterChange}
+                                className="appearance-none pl-9 pr-10 py-2 text-sm font-medium border border-slate-200 rounded-lg hover:border-blue-400 focus:ring-2 focus:ring-blue-100 focus:border-blue-500 bg-white text-slate-600 transition-all cursor-pointer shadow-sm"
+                            >
+                                <option value="">All Branches</option>
+                                {branches.map(branch => (
+                                    <option key={branch._id} value={branch._id}>{branch.name}</option>
+                                ))}
+                            </select>
+                            <ChevronDownIcon className="absolute right-3 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400 pointer-events-none" />
+                        </div>
+                    </div>
                 </div>
 
                 <div className="overflow-x-auto">
