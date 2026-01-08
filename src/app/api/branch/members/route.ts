@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
         }
 
         const body = await req.json();
-        const { fullName, phone, role, employeeId, faceDescriptor, images } = body;
+        const { fullName, phone, role, employeeId, faceDescriptor, images, shiftId, customStartTime, customEndTime } = body;
 
         // Basic validation
         if (!fullName || !employeeId || !faceDescriptor) {
@@ -28,7 +28,10 @@ export async function POST(req: NextRequest) {
             employeeId,
             branchId: session.user.id, // Associate with logged-in branch
             faceDescriptor,
-            images
+            images,
+            shiftId: shiftId || undefined,
+            customStartTime,
+            customEndTime
         });
 
         return NextResponse.json({ success: true, member: newMember });
@@ -49,11 +52,56 @@ export async function GET(req: NextRequest) {
         }
 
         const members = await Member.find({ branchId: session.user.id })
-            .select('fullName employeeId role faceDescriptor branchId');
+            .select('fullName employeeId role faceDescriptor branchId shiftId images phone customStartTime customEndTime')
+            .populate('shiftId', 'name startTime endTime');
 
         return NextResponse.json({ success: true, members });
     } catch (error: any) {
         console.error('Error fetching members:', error);
+        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    }
+}
+
+export async function PUT(req: NextRequest) {
+    try {
+        await dbConnect();
+        const session = await getSession();
+
+        if (!session?.user?.id) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        const body = await req.json();
+        const { _id, shiftId, customStartTime, customEndTime, fullName, phone, role, employeeId } = body;
+
+        if (!_id) {
+            return NextResponse.json({ error: 'Member ID is required' }, { status: 400 });
+        }
+
+        const updatedMember = await Member.findOneAndUpdate(
+            { _id, branchId: session.user.id },
+            {
+                $set: {
+                    fullName,
+                    phone,
+                    role,
+                    employeeId,
+                    shiftId: shiftId || undefined,
+                    customStartTime,
+                    customEndTime
+                }
+            },
+            { new: true }
+        ).populate('shiftId', 'name startTime endTime');
+
+        if (!updatedMember) {
+            return NextResponse.json({ error: 'Member not found' }, { status: 404 });
+        }
+
+        return NextResponse.json({ success: true, member: updatedMember });
+
+    } catch (error: any) {
+        console.error('Error updating member:', error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 }

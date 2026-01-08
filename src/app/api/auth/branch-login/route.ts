@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getIronSession } from 'iron-session';
+import { cookies } from 'next/headers';
 import { SessionData, sessionOptions } from '@/lib/session';
 import dbConnect from '@/lib/db';
 import Branch from '@/models/Branch';
@@ -21,13 +22,9 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ message: 'Invalid credentials' }, { status: 401 });
         }
 
-        const response = NextResponse.json({
-            message: 'Login successful',
-            branchId: branch._id,
-            name: branch.name
-        }, { status: 200 });
+        const cookieStore = await cookies();
+        const session = await getIronSession<SessionData>(cookieStore, sessionOptions);
 
-        const session = await getIronSession<SessionData>(request, response, sessionOptions);
         session.user = {
             id: branch._id.toString(),
             email: branch.email,
@@ -35,7 +32,11 @@ export async function POST(request: NextRequest) {
         };
         await session.save();
 
-        return response;
+        return NextResponse.json({
+            message: 'Login successful',
+            branchId: branch._id,
+            name: branch.name
+        }, { status: 200 });
 
     } catch (error) {
         console.error('Branch login error:', error);

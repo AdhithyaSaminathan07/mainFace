@@ -23,6 +23,20 @@ export default function DashboardContent() {
         { id: 1, text: 'System started', time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) },
     ]);
 
+    const [stats, setStats] = useState({ present: 0, late: 0 });
+
+    const fetchStats = async () => {
+        try {
+            const res = await fetch('/api/branch/attendance');
+            const data = await res.json();
+            if (data.success) {
+                setStats(data.stats);
+            }
+        } catch (error) {
+            console.error('Error fetching stats:', error);
+        }
+    };
+
     useEffect(() => {
         const fetchMembers = async () => {
             try {
@@ -48,6 +62,7 @@ export default function DashboardContent() {
         };
 
         fetchMembers();
+        fetchStats();
     }, []);
 
     const handleFaceMatch = useCallback(async (bestMatch: faceapi.FaceMatch) => {
@@ -78,6 +93,9 @@ export default function DashboardContent() {
                     text: data.message,
                     time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                 }, ...prev.slice(0, 9)]);
+
+                // Refresh stats
+                fetchStats();
 
                 setTimeout(() => {
                     setIsScannerOpen(false);
@@ -142,11 +160,11 @@ export default function DashboardContent() {
                     <div className="grid grid-cols-2 gap-6">
                         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                             <p className="text-gray-500 text-sm">Present Today</p>
-                            <h4 className="text-3xl font-bold text-gray-900 mt-2">0</h4>
+                            <h4 className="text-3xl font-bold text-gray-900 mt-2">{stats.present}</h4>
                         </div>
                         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                             <p className="text-gray-500 text-sm">Late Arrivals</p>
-                            <h4 className="text-3xl font-bold text-gray-900 mt-2">0</h4>
+                            <h4 className="text-3xl font-bold text-gray-900 mt-2">{stats.late}</h4>
                         </div>
                     </div>
                 </div>

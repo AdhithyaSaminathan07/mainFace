@@ -11,28 +11,49 @@ interface Member {
     role: string;
     faceDescriptor: number[];
     images: string[];
+    shiftId?: {
+        name: string;
+        startTime: string;
+        endTime: string;
+    };
+    customStartTime?: string;
+    customEndTime?: string;
 }
 
 export default function MembersContent() {
     const [members, setMembers] = useState<Member[]>([]);
     const [loading, setLoading] = useState(true);
+    const [shifts, setShifts] = useState<any[]>([]);
+    const [editingMember, setEditingMember] = useState<Member | null>(null);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [editFormData, setEditFormData] = useState({
+        shiftId: '',
+        customStartTime: '',
+        customEndTime: '',
+    });
 
     useEffect(() => {
-        const fetchMembers = async () => {
+        const fetchData = async () => {
             try {
-                const res = await fetch('/api/branch/members');
-                const data = await res.json();
-                if (data.success) {
-                    setMembers(data.members);
-                }
+                const [membersRes, shiftsRes] = await Promise.all([
+                    fetch('/api/branch/members'),
+                    fetch('/api/branch/shifts')
+                ]);
+
+                const membersData = await membersRes.json();
+                const shiftsData = await shiftsRes.json();
+
+                if (membersData.success) setMembers(membersData.members);
+                if (shiftsData.success) setShifts(shiftsData.shifts);
+
             } catch (error) {
-                console.error('Failed to load members', error);
+                console.error('Failed to load data', error);
             } finally {
                 setLoading(false);
             }
         };
 
-        fetchMembers();
+        fetchData();
     }, []);
 
     const handleDelete = async (id: string, name: string) => {
@@ -52,6 +73,71 @@ export default function MembersContent() {
         } catch (error) {
             console.error('Error deleting member:', error);
             alert('An error occurred while deleting');
+        }
+    };
+
+    const handleEditClick = (member: Member) => {
+        setEditingMember(member);
+        setEditFormData({
+            shiftId: member.shiftId ? (member.shiftId as any)._id || member.shiftId : '', // Handle populated vs unpopulated
+            customStartTime: member.customStartTime || '',
+            customEndTime: member.customEndTime || '',
+        });
+        setIsEditModalOpen(true);
+    };
+
+    const handleEditShiftChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const selectedShiftId = e.target.value;
+        const selectedShift = shifts.find(s => s._id === selectedShiftId);
+
+        if (selectedShift) {
+            setEditFormData({
+                shiftId: selectedShiftId,
+                customStartTime: selectedShift.startTime,
+                customEndTime: selectedShift.endTime
+            });
+        } else {
+            setEditFormData(prev => ({
+                ...prev,
+                shiftId: selectedShiftId,
+                customStartTime: '',
+                customEndTime: ''
+            }));
+        }
+    };
+
+    const handleSaveEdit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingMember) return;
+
+        try {
+            const res = await fetch('/api/branch/members', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    _id: editingMember._id,
+                    ...editFormData,
+                    fullName: editingMember.fullName, // Preserve other fields
+                    phone: editingMember.phone,
+                    role: editingMember.role,
+                    employeeId: editingMember.employeeId
+                }),
+            });
+
+            const data = await res.json();
+
+            if (data.success) {
+                // Update local state
+                setMembers(prev => prev.map(m => m._id === editingMember._id ? data.member : m));
+                setIsEditModalOpen(false);
+                setEditingMember(null);
+                alert('Member updated successfully');
+            } else {
+                alert(data.error || 'Failed to update member');
+            }
+        } catch (error) {
+            console.error('Error updating member:', error);
+            alert('Failed to update member');
         }
     };
 
@@ -103,9 +189,20 @@ export default function MembersContent() {
                                 </div>
 
                                 <div className="flex-1 min-w-0">
-                                    <h3 className="text-base font-semibold text-gray-900 truncate group-hover:text-green-700 transition-colors">
-                                        {member.fullName}
-                                    </h3>
+                                    <div className="flex justify-between items-start">
+                                        <h3 className="text-base font-semibold text-gray-900 truncate group-hover:text-green-700 transition-colors">
+                                            {member.fullName}
+                                        </h3>
+                                        <button
+                                            onClick={() => handleEditClick(member)}
+                                            className="text-gray-400 hover:text-blue-600 transition-colors"
+                                            title="Edit Shift"
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
+                                            </svg>
+                                        </button>
+                                    </div>
                                     <div className="flex items-center gap-2 mt-1 text-sm text-gray-500">
                                         <IdentificationIcon className="w-4 h-4 text-gray-400" />
                                         <span className="truncate">{member.employeeId} • {member.role}</span>
@@ -114,6 +211,18 @@ export default function MembersContent() {
                                         <PhoneIcon className="w-4 h-4 text-gray-400" />
                                         <span className="truncate">{member.phone}</span>
                                     </div>
+                                    {(member.shiftId || (member.customStartTime && member.customEndTime)) && (
+                                        <div className="flex items-center gap-2 mt-1 text-sm text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md w-fit">
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                                            </svg>
+                                            <span className="truncate font-medium">
+                                                {member.shiftId?.name || 'Custom Shift'} (
+                                                {member.customStartTime || member.shiftId?.startTime} - {member.customEndTime || member.shiftId?.endTime}
+                                                )
+                                            </span>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -136,6 +245,78 @@ export default function MembersContent() {
                     </div>
                 ))}
             </div>
+
+            {/* Edit Modal */}
+            {isEditModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-xl animate-in fade-in zoom-in duration-200">
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-lg font-bold text-gray-900">Edit Shift Allocation</h3>
+                            <button
+                                onClick={() => setIsEditModalOpen(false)}
+                                className="text-gray-400 hover:text-gray-600"
+                            >
+                                <XCircleIcon className="w-6 h-6" />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleSaveEdit} className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Shift</label>
+                                <select
+                                    className="w-full rounded-lg bg-gray-50 border border-gray-200 px-4 py-2 text-sm focus:bg-white focus:border-blue-500 outline-none"
+                                    value={editFormData.shiftId}
+                                    onChange={handleEditShiftChange}
+                                >
+                                    <option value="">-- No Shift --</option>
+                                    {shifts.map((shift) => (
+                                        <option key={shift._id} value={shift._id}>
+                                            {shift.name} ({shift.startTime} - {shift.endTime})
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
+                                    <input
+                                        type="time"
+                                        className="w-full rounded-lg bg-gray-50 border border-gray-200 px-4 py-2 text-sm focus:bg-white focus:border-blue-500 outline-none"
+                                        value={editFormData.customStartTime}
+                                        onChange={(e) => setEditFormData({ ...editFormData, customStartTime: e.target.value })}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">End Time</label>
+                                    <input
+                                        type="time"
+                                        className="w-full rounded-lg bg-gray-50 border border-gray-200 px-4 py-2 text-sm focus:bg-white focus:border-blue-500 outline-none"
+                                        value={editFormData.customEndTime}
+                                        onChange={(e) => setEditFormData({ ...editFormData, customEndTime: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="pt-4 flex justify-end gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsEditModalOpen(false)}
+                                    className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 shadow-sm shadow-blue-600/20"
+                                >
+                                    Save Changes
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

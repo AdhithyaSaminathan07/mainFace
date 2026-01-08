@@ -22,6 +22,19 @@ const MemberSchema = new mongoose.Schema({
         ref: 'Branch',
         required: true,
     },
+    shiftId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Shift',
+        required: false, // Optional initially, but recommended
+    },
+    customStartTime: {
+        type: String, // "HH:mm" - overrides shift start time
+        required: false,
+    },
+    customEndTime: {
+        type: String, // "HH:mm" - overrides shift end time
+        required: false,
+    },
     faceDescriptor: {
         type: [Number], // Store the 128 float descriptor
         required: true,
