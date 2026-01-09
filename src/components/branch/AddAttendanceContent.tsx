@@ -85,6 +85,112 @@ export default function AddAttendanceContent() {
         }
     };
 
+    // Location Logic
+    const [locationStatus, setLocationStatus] = useState<'loading' | 'allowed' | 'denied' | 'out-of-range' | 'error'>('loading');
+    const [distance, setDistance] = useState<number | null>(null);
+    const [branchLocation, setBranchLocation] = useState<{ lat: number, lng: number, radius: number } | null>(null);
+
+    const checkLocation = async () => {
+        setLocationStatus('loading');
+        try {
+            const res = await fetch('/api/settings/location');
+            const data = await res.json();
+
+            if (!data.success || !data.location || !data.location.latitude) {
+                console.warn('No branch location set, skipping check');
+                setLocationStatus('allowed');
+                return;
+            }
+
+            const branch = data.location;
+            setBranchLocation({ lat: branch.latitude, lng: branch.longitude, radius: branch.radius || 100 });
+
+            if (!navigator.geolocation) {
+                toast.error('Geolocation is not supported');
+                setLocationStatus('error');
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const userLat = position.coords.latitude;
+                    const userLng = position.coords.longitude;
+
+                    // Haversine formula
+                    const R = 6371e3;
+                    const φ1 = userLat * Math.PI / 180;
+                    const φ2 = branch.latitude * Math.PI / 180;
+                    const Δφ = (branch.latitude - userLat) * Math.PI / 180;
+                    const Δλ = (branch.longitude - userLng) * Math.PI / 180;
+                    const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+                    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+                    const dist = R * c;
+
+                    setDistance(Math.round(dist));
+
+                    if (dist <= (branch.radius || 100)) {
+                        setLocationStatus('allowed');
+                    } else {
+                        setLocationStatus('out-of-range');
+                    }
+                },
+                (error) => {
+                    console.error('Location error:', error);
+                    setLocationStatus(error.code === error.PERMISSION_DENIED ? 'denied' : 'error');
+                },
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+            );
+        } catch (error) {
+            console.error('Failed to check location:', error);
+            setLocationStatus('error');
+        }
+    };
+
+    useEffect(() => {
+        checkLocation();
+    }, []);
+
+    if (locationStatus === 'loading') {
+        return (
+            <div className="h-[calc(100vh-8rem)] flex items-center justify-center">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                    <p className="text-gray-500">Verifying location...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (locationStatus !== 'allowed') {
+        return (
+            <div className="h-[calc(100vh-8rem)] flex items-center justify-center p-4">
+                <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 text-center border border-red-100">
+                    <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8 text-red-600">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
+                        </svg>
+                    </div>
+                    <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                        {locationStatus === 'denied' ? 'Location Access Required' :
+                            locationStatus === 'out-of-range' ? 'Out of Range' : 'Location Check Failed'}
+                    </h2>
+                    <p className="text-gray-600 mb-6">
+                        {locationStatus === 'denied' && "Please enable location access to add members."}
+                        {locationStatus === 'out-of-range' && `You are ${distance}m away. You must be within ${branchLocation?.radius}m of the branch.`}
+                        {locationStatus === 'error' && "Unable to verify your location. Please try again."}
+                    </p>
+                    <button
+                        onClick={checkLocation}
+                        className="w-full py-3 px-4 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-xl transition-colors flex items-center justify-center gap-2"
+                    >
+                        Try Again
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="max-w-2xl mx-auto">
             <div className="mb-8">
@@ -201,12 +307,11 @@ export default function AddAttendanceContent() {
                 </form>
             </div>
 
-            {/* Modal */}
             <FaceEnrollModal
                 isOpen={isEnrollModalOpen}
                 onClose={() => setIsEnrollModalOpen(false)}
                 onEnroll={handleFaceDetected}
             />
-        </div>
+        </div >
     );
 }

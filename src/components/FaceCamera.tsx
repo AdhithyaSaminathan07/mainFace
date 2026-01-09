@@ -197,15 +197,22 @@ export default function FaceCamera({ onFaceDetected, onFaceMatch, labeledDescrip
                             setMessage('Face Captured!');
                             stabilityCounter.current = 0; // Reset
 
-                            // Capture Image
+                            // Capture Image (Compressed)
                             const imgCanvas = document.createElement('canvas');
-                            imgCanvas.width = videoRef.current.videoWidth;
-                            imgCanvas.height = videoRef.current.videoHeight;
-                            imgCanvas.getContext('2d')?.drawImage(videoRef.current, 0, 0);
-                            const image = imgCanvas.toDataURL('image/jpeg');
+                            const MAX_WIDTH = 600;
+                            const scale = Math.min(1, MAX_WIDTH / videoRef.current.videoWidth);
+                            imgCanvas.width = videoRef.current.videoWidth * scale;
+                            imgCanvas.height = videoRef.current.videoHeight * scale;
 
-                            if (onFaceDetected) {
-                                onFaceDetected(detection.descriptor, image);
+                            const ctx = imgCanvas.getContext('2d');
+                            if (ctx) {
+                                ctx.drawImage(videoRef.current, 0, 0, imgCanvas.width, imgCanvas.height);
+                                // Compress to 0.8 quality JPEG
+                                const image = imgCanvas.toDataURL('image/jpeg', 0.8);
+
+                                if (onFaceDetected) {
+                                    onFaceDetected(detection.descriptor, image);
+                                }
                             }
                         }
                     } else if (mode === 'scan') {
