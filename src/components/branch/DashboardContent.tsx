@@ -5,6 +5,7 @@ import FaceScanModal from '@/components/FaceScanModal';
 import * as faceapi from 'face-api.js';
 import toast, { Toaster } from 'react-hot-toast';
 import { ViewfinderCircleIcon } from '@heroicons/react/24/outline';
+import { useFaceApi } from '@/context/FaceApiContext';
 
 interface Member {
     _id: string;
@@ -13,6 +14,7 @@ interface Member {
 }
 
 export default function DashboardContent() {
+    const { isModelsLoaded } = useFaceApi();
     const [labeledDescriptors, setLabeledDescriptors] = useState<faceapi.LabeledFaceDescriptors[]>([]);
     const [loading, setLoading] = useState(true);
     const [isScannerOpen, setIsScannerOpen] = useState(false);
@@ -136,8 +138,8 @@ export default function DashboardContent() {
                     {/* Quick Action Tag */}
                     <button
                         onClick={() => setIsScannerOpen(true)}
-                        disabled={loading}
-                        className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white p-6 rounded-2xl shadow-lg shadow-blue-600/20 transition-all transform hover:-translate-y-1 flex items-center justify-between group"
+                        disabled={loading || !isModelsLoaded}
+                        className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white p-6 rounded-2xl shadow-lg shadow-blue-600/20 transition-all transform hover:-translate-y-1 flex items-center justify-between group disabled:opacity-75 disabled:cursor-not-allowed"
                     >
                         <div className="flex items-center gap-4">
                             <div className="p-3 bg-white/10 rounded-xl group-hover:scale-110 transition-transform">
@@ -149,7 +151,7 @@ export default function DashboardContent() {
                             </div>
                         </div>
                         <div className="flex items-center gap-2 text-blue-100 text-sm font-medium">
-                            {loading ? 'Loading models...' : 'Ready to scan'}
+                            {loading ? 'Loading data...' : !isModelsLoaded ? 'Initializing AI...' : 'Ready to scan'}
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 group-hover:translate-x-1 transition-transform">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
                             </svg>

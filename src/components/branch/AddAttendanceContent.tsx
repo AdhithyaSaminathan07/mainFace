@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import FaceEnrollModal from '@/components/FaceEnrollModal';
 import * as faceapi from 'face-api.js';
+import { useFaceApi } from '@/context/FaceApiContext';
 import { CheckCircleIcon } from '@heroicons/react/24/outline';
 import { toast } from 'react-hot-toast';
 
@@ -20,19 +21,12 @@ export default function AddAttendanceContent() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isEnrollModalOpen, setIsEnrollModalOpen] = useState(false);
 
-    // Preload models and fetch roles
-    useEffect(() => {
-        const loadData = async () => {
-            const MODEL_URL = '/models';
-            try {
-                // Load models
-                await Promise.all([
-                    faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
-                    faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
-                    faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
-                ]);
-                console.log('Face models preloaded');
+    const { isModelsLoaded } = useFaceApi();
 
+    // Fetch roles
+    useEffect(() => {
+        const loadRoles = async () => {
+            try {
                 // Set default role
                 setAvailableRoles(['Staff']);
                 setFormData(prev => ({ ...prev, role: 'Staff' }));
@@ -43,7 +37,7 @@ export default function AddAttendanceContent() {
                 setIsLoadingRoles(false);
             }
         };
-        loadData();
+        loadRoles();
     }, []);
 
     const handleFaceDetected = (descriptor: Float32Array, image: string) => {

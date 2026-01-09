@@ -2,6 +2,7 @@
 
 import { useRef, useEffect, useState } from 'react';
 import * as faceapi from 'face-api.js';
+import { useFaceApi } from '@/context/FaceApiContext';
 
 interface FaceCameraProps {
     onFaceDetected?: (descriptor: Float32Array, image: string) => void;
@@ -15,8 +16,8 @@ interface FaceCameraProps {
 export default function FaceCamera({ onFaceDetected, onFaceMatch, labeledDescriptors, mode, showAdvancedVisuals, onQualityChange }: FaceCameraProps) {
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const [isModelLoaded, setIsModelLoaded] = useState(false);
-    const [message, setMessage] = useState('Loading models...');
+    const { isModelsLoaded, error } = useFaceApi();
+    const [message, setMessage] = useState('Initializing camera...');
     const [faceMatcher, setFaceMatcher] = useState<faceapi.FaceMatcher | null>(null);
 
     // Stability tracking
@@ -25,41 +26,15 @@ export default function FaceCamera({ onFaceDetected, onFaceMatch, labeledDescrip
     const STABILITY_THRESHOLD = 15; // Approx 1-2 seconds at 100ms intervals
 
     useEffect(() => {
-        loadModels();
-    }, []);
-
-    useEffect(() => {
-        if (labeledDescriptors && labeledDescriptors.length > 0) {
-            setFaceMatcher(new faceapi.FaceMatcher(labeledDescriptors, 0.6));
-        }
-    }, [labeledDescriptors]);
-
-    const loadModels = async () => {
-        try {
-            // Check if models are already loaded to prevent re-fetching
-            if (faceapi.nets.ssdMobilenetv1.isLoaded &&
-                faceapi.nets.faceLandmark68Net.isLoaded &&
-                faceapi.nets.faceRecognitionNet.isLoaded) {
-                setIsModelLoaded(true);
-                setMessage('Starting camera...');
-                startVideo();
-                return;
-            }
-
-            const MODEL_URL = '/models';
-            await Promise.all([
-                faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
-                faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
-                faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
-            ]);
-            setIsModelLoaded(true);
-            setMessage('Starting camera...');
+        if (isModelsLoaded) {
             startVideo();
-        } catch (err) {
-            console.error('Error loading models:', err);
-            setMessage('Error loading face recognition models.');
+            setMessage('Starting camera...');
+        } else if (error) {
+            setMessage(error);
+        } else {
+            setMessage('Loading models...');
         }
-    };
+    }, [isModelsLoaded, error]);
 
     const startVideo = async () => {
         const constraints = {
@@ -275,7 +250,7 @@ export default function FaceCamera({ onFaceDetected, onFaceMatch, labeledDescrip
 
     return (
         <div className="relative w-full h-full bg-gray-100 rounded-xl overflow-hidden shadow-sm">
-            {!isModelLoaded && (
+            {!isModelsLoaded && (
                 <div className="absolute inset-0 z-20 flex items-center justify-center bg-gray-100 text-gray-500">
                     <p className="animate-pulse font-medium">{message}</p>
                 </div>
