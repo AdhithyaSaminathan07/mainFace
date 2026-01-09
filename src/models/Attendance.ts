@@ -7,8 +7,7 @@ const AttendanceSchema = new mongoose.Schema({
         required: true,
     },
     branchId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Branch',
+        type: String,
         required: true,
     },
     date: {

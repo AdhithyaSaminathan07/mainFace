@@ -33,20 +33,11 @@ export default function AddAttendanceContent() {
                 ]);
                 console.log('Face models preloaded');
 
-                // Fetch roles
-                const res = await fetch('/api/branch/details');
-                const data = await res.json();
-                if (data.success && data.branch.roles && data.branch.roles.length > 0) {
-                    setAvailableRoles(data.branch.roles);
-                    setFormData(prev => ({ ...prev, role: data.branch.roles[0] }));
-                } else {
-                    // Fallback if no roles assigned
-                    setAvailableRoles(['Staff']);
-                    setFormData(prev => ({ ...prev, role: 'Staff' }));
-                }
+                // Set default role
+                setAvailableRoles(['Staff']);
+                setFormData(prev => ({ ...prev, role: 'Staff' }));
             } catch (err) {
                 console.error('Failed to load data', err);
-                // Fallback
                 setAvailableRoles(['Staff']);
             } finally {
                 setIsLoadingRoles(false);
@@ -71,7 +62,7 @@ export default function AddAttendanceContent() {
         setIsSubmitting(true);
 
         try {
-            const res = await fetch('/api/branch/members', {
+            const res = await fetch('/api/attendance', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

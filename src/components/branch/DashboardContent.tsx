@@ -27,7 +27,7 @@ export default function DashboardContent() {
 
     const fetchStats = async () => {
         try {
-            const res = await fetch('/api/branch/attendance');
+            const res = await fetch('/api/attendance');
             const data = await res.json();
             if (data.success) {
                 setStats(data.stats);
@@ -40,7 +40,7 @@ export default function DashboardContent() {
     useEffect(() => {
         const fetchMembers = async () => {
             try {
-                const res = await fetch('/api/branch/members');
+                const res = await fetch('/api/attendance?action=members');
                 const data = await res.json();
                 if (data.success && data.members) {
                     const descriptors = data.members
@@ -74,7 +74,7 @@ export default function DashboardContent() {
             if (!match) return;
             const memberId = match[1];
 
-            const res = await fetch('/api/branch/attendance', {
+            const res = await fetch('/api/attendance', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

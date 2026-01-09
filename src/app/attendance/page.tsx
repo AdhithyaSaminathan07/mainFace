@@ -1,5 +1,5 @@
 import AddAttendanceContent from '@/components/branch/AddAttendanceContent';
 
-export default function AddMemberPage() {
+export default function AttendancePage() {
     return <AddAttendanceContent />;
 }

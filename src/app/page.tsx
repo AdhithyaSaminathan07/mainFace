@@ -1,5 +1,5 @@
-import BranchLogin from '@/components/BranchLogin';
+import DashboardContent from '@/components/branch/DashboardContent';
 
 export default function Page() {
-  return <BranchLogin />;
+  return <DashboardContent />;
 }
