@@ -4,6 +4,7 @@ import Branch from '@/models/Branch';
 
 // Reuse the same hardcoded ID
 const DEFAULT_BRANCH_ID = 'default-branch';
+export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
     try {

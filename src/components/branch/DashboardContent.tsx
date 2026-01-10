@@ -159,7 +159,7 @@ export default function DashboardContent() {
 
             // 2. Get User Location
             if (!navigator.geolocation) {
-                toast.error('Geolocation is not supported by your browser');
+                // don't toast on load, just set status
                 setLocationStatus('error');
                 return;
             }
@@ -199,53 +199,25 @@ export default function DashboardContent() {
         checkLocation();
     }, [checkLocation]);
 
+    const handleScanClick = () => {
+        if (locationStatus === 'loading') {
+            toast('Checking your location...', { icon: '📍' });
+            return;
+        }
 
-    if (locationStatus === 'loading') {
-        return (
-            <div className="h-[calc(100vh-8rem)] flex items-center justify-center">
-                <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                    <p className="text-gray-500">Verifying location...</p>
-                </div>
-            </div>
-        );
-    }
+        if (locationStatus === 'allowed') {
+            setIsScannerOpen(true);
+        } else if (locationStatus === 'out-of-range') {
+            toast.error(`You are ${distance}m away. Must be within ${branchLocation?.radius}m.`);
+        } else if (locationStatus === 'denied') {
+            toast.error('Location access denied. Please enable location.');
+        } else {
+            toast.error('Unable to verify location.');
+            // Try checking again
+            checkLocation();
+        }
+    };
 
-    if (locationStatus !== 'allowed') {
-        return (
-            <div className="h-[calc(100vh-8rem)] flex items-center justify-center p-4">
-                <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 text-center border border-red-100">
-                    <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8 text-red-600">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
-                        </svg>
-                    </div>
-
-                    <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                        {locationStatus === 'denied' ? 'Location Access Required' :
-                            locationStatus === 'out-of-range' ? 'Out of Range' : 'Location Check Failed'}
-                    </h2>
-
-                    <p className="text-gray-600 mb-6">
-                        {locationStatus === 'denied' && "Please enable location access to use the attendance system."}
-                        {locationStatus === 'out-of-range' && `You are ${distance}m away. You must be within ${branchLocation?.radius}m of the branch.`}
-                        {locationStatus === 'error' && "Unable to verify your location. Please try again."}
-                    </p>
-
-                    <button
-                        onClick={checkLocation}
-                        className="w-full py-3 px-4 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-xl transition-colors flex items-center justify-center gap-2"
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
-                        </svg>
-                        Try Again
-                    </button>
-                </div>
-            </div>
-        );
-    }
 
     return (
         <div className="h-[calc(100vh-8rem)]">
@@ -263,7 +235,7 @@ export default function DashboardContent() {
                 <div className="lg:col-span-2 space-y-6">
                     {/* Quick Action Tag */}
                     <button
-                        onClick={() => setIsScannerOpen(true)}
+                        onClick={handleScanClick}
                         disabled={loading || !isModelsLoaded}
                         className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white p-6 rounded-2xl shadow-lg shadow-blue-600/20 transition-all transform hover:-translate-y-1 flex items-center justify-between group disabled:opacity-75 disabled:cursor-not-allowed"
                     >
