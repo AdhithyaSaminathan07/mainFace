@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
     try {
         await dbConnect();
         const body = await req.json();
-        const { latitude, longitude, radius } = body;
+        const { latitude, longitude, radius, ipAddress, ipEnabled } = body;
 
         if (!latitude || !longitude) {
             return NextResponse.json(
@@ -28,6 +28,10 @@ export async function POST(req: NextRequest) {
                         longitude: parseFloat(longitude),
                         radius: parseFloat(radius) || 100
                     },
+                    ipSettings: {
+                        address: ipAddress || '',
+                        enabled: ipEnabled || false
+                    },
                     updatedAt: new Date()
                 }
             },
@@ -36,12 +40,12 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json({
             success: true,
-            message: 'Location updated successfully',
+            message: 'Settings updated successfully',
             data: updatedBranch
         });
 
     } catch (error: any) {
-        console.error('Error updating location:', error);
+        console.error('Error updating settings:', error);
         return NextResponse.json(
             { error: error.message || 'Internal Server Error' },
             { status: 500 }
@@ -64,11 +68,15 @@ export async function GET(req: NextRequest) {
 
         return NextResponse.json({
             success: true,
-            data: branch.location
+            data: {
+                ...branch.location, // spread location (lat, lng, radius)
+                ipAddress: branch.ipSettings?.address || '',
+                ipEnabled: branch.ipSettings?.enabled || false
+            }
         });
 
     } catch (error: any) {
-        console.error('Error fetching location:', error);
+        console.error('Error fetching settings:', error);
         return NextResponse.json(
             { error: 'Internal Server Error' },
             { status: 500 }

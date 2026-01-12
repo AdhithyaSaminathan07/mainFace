@@ -21,6 +21,15 @@ const BranchSchema = new mongoose.Schema({
             default: 100
         }
     },
+    ipSettings: {
+        address: {
+            type: String,
+        },
+        enabled: {
+            type: Boolean,
+            default: false
+        }
+    },
     updatedAt: {
         type: Date,
         default: Date.now,

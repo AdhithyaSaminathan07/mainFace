@@ -1,14 +1,16 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { MapPinIcon } from '@heroicons/react/24/outline';
+import { MapPinIcon, ShieldCheckIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 
 export default function SettingsContent() {
-    const [location, setLocation] = useState({
+    const [settings, setSettings] = useState({
         latitude: '',
         longitude: '',
-        radius: ''
+        radius: '',
+        ipAddress: '',
+        ipEnabled: false
     });
 
     useEffect(() => {
@@ -17,10 +19,12 @@ export default function SettingsContent() {
                 const res = await fetch('/api/settings/location');
                 const data = await res.json();
                 if (data.success && data.data) {
-                    setLocation({
+                    setSettings({
                         latitude: data.data.latitude?.toString() || '',
                         longitude: data.data.longitude?.toString() || '',
-                        radius: data.data.radius?.toString() || ''
+                        radius: data.data.radius?.toString() || '',
+                        ipAddress: data.data.ipAddress || '',
+                        ipEnabled: data.data.ipEnabled || false
                     });
                 }
             } catch (error) {
@@ -41,7 +45,7 @@ export default function SettingsContent() {
         navigator.geolocation.getCurrentPosition(
             (position) => {
                 toast.dismiss(toastId);
-                setLocation(prev => ({
+                setSettings(prev => ({
                     ...prev,
                     latitude: position.coords.latitude.toString(),
                     longitude: position.coords.longitude.toString()
@@ -68,19 +72,36 @@ export default function SettingsContent() {
         );
     };
 
+    const handleGetCurrentIP = async () => {
+        const toastId = toast.loading('Fetching IP address...');
+        try {
+            const res = await fetch('/api/utils/my-ip');
+            const data = await res.json();
+            if (data.success) {
+                setSettings(prev => ({ ...prev, ipAddress: data.ip }));
+                toast.success('IP address fetched successfully', { id: toastId });
+            } else {
+                toast.error('Failed to fetch IP', { id: toastId });
+            }
+        } catch (error) {
+            console.error('Error fetching IP:', error);
+            toast.error('Error fetching IP', { id: toastId });
+        }
+    };
+
     const handleSave = async () => {
         const toastId = toast.loading('Saving settings...');
         try {
             const res = await fetch('/api/settings/location', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(location)
+                body: JSON.stringify(settings)
             });
 
             const data = await res.json();
 
             if (data.success) {
-                toast.success('Location settings updated successfully', { id: toastId });
+                toast.success('Settings updated successfully', { id: toastId });
             } else {
                 toast.error(data.error || 'Failed to update settings', { id: toastId });
             }
@@ -95,10 +116,11 @@ export default function SettingsContent() {
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-                    <p className="text-gray-500 text-sm mt-1">Manage branch location and geofencing</p>
+                    <p className="text-gray-500 text-sm mt-1">Manage branch location and security settings</p>
                 </div>
             </div>
 
+            {/* Location Settings */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                 <div className="p-6 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center gap-4">
                     <div className="flex items-center gap-3">
@@ -122,8 +144,8 @@ export default function SettingsContent() {
                             <input
                                 type="text"
                                 placeholder="e.g. 12.9716"
-                                value={location.latitude}
-                                onChange={(e) => setLocation({ ...location, latitude: e.target.value })}
+                                value={settings.latitude}
+                                onChange={(e) => setSettings({ ...settings, latitude: e.target.value })}
                                 className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-gray-900"
                             />
                         </div>
@@ -132,8 +154,8 @@ export default function SettingsContent() {
                             <input
                                 type="text"
                                 placeholder="e.g. 77.5946"
-                                value={location.longitude}
-                                onChange={(e) => setLocation({ ...location, longitude: e.target.value })}
+                                value={settings.longitude}
+                                onChange={(e) => setSettings({ ...settings, longitude: e.target.value })}
                                 className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-gray-900"
                             />
                         </div>
@@ -143,11 +165,61 @@ export default function SettingsContent() {
                         <input
                             type="number"
                             placeholder="e.g. 100"
-                            value={location.radius}
-                            onChange={(e) => setLocation({ ...location, radius: e.target.value })}
+                            value={settings.radius}
+                            onChange={(e) => setSettings({ ...settings, radius: e.target.value })}
                             className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-gray-900"
                         />
                         <p className="text-xs text-gray-500 mt-2">Maximum distance allowed from the center point for valid attendance</p>
+                    </div>
+                </div>
+            </div>
+
+            {/* IP Settings */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="p-6 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center gap-4">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-purple-50 rounded-lg text-purple-600 shrink-0">
+                            <ShieldCheckIcon className="w-6 h-6" />
+                        </div>
+                        <h2 className="text-lg font-semibold text-gray-900">IP Security</h2>
+                    </div>
+                    <button
+                        onClick={handleGetCurrentIP}
+                        className="w-full sm:w-auto sm:ml-auto text-sm text-purple-600 hover:text-purple-700 font-medium hover:underline flex items-center justify-center sm:justify-start gap-1 p-2 sm:p-0 bg-purple-50 sm:bg-transparent rounded-lg sm:rounded-none"
+                    >
+                        <ShieldCheckIcon className="w-4 h-4" />
+                        Use Current IP
+                    </button>
+                </div>
+                <div className="p-6 space-y-6">
+                    <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100">
+                        <div>
+                            <h3 className="text-sm font-medium text-gray-900">Enable IP Restriction</h3>
+                            <p className="text-xs text-gray-500 mt-1">Only allow attendance from the specified IP address</p>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                                type="checkbox"
+                                className="sr-only peer"
+                                checked={settings.ipEnabled}
+                                onChange={(e) => setSettings({ ...settings, ipEnabled: e.target.checked })}
+                            />
+                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                        </label>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Allowed IP Address</label>
+                        <input
+                            type="text"
+                            placeholder="e.g. 192.168.1.100"
+                            value={settings.ipAddress}
+                            onChange={(e) => setSettings({ ...settings, ipAddress: e.target.value })}
+                            className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all text-gray-900"
+                        />
+                        <p className="text-xs text-gray-500 mt-2">
+                            This network IP address will be whitelisted for attendance marking.
+                        </p>
                     </div>
 
                     <div className="pt-4 flex justify-end">
@@ -155,7 +227,7 @@ export default function SettingsContent() {
                             onClick={handleSave}
                             className="w-full sm:w-auto px-6 py-2.5 bg-blue-600 text-white font-medium rounded-xl hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/20"
                         >
-                            Update Location
+                            Update All Settings
                         </button>
                     </div>
                 </div>
