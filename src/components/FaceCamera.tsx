@@ -36,6 +36,14 @@ export default function FaceCamera({ onFaceDetected, onFaceMatch, labeledDescrip
         }
     }, [isModelsLoaded, error]);
 
+    useEffect(() => {
+        if (labeledDescriptors && labeledDescriptors.length > 0) {
+            setFaceMatcher(new faceapi.FaceMatcher(labeledDescriptors, 0.6));
+        } else {
+            setFaceMatcher(null);
+        }
+    }, [labeledDescriptors]);
+
     const startVideo = async () => {
         const constraints = {
             video: {
@@ -75,13 +83,16 @@ export default function FaceCamera({ onFaceDetected, onFaceMatch, labeledDescrip
 
         faceapi.matchDimensions(canvasRef.current, displaySize);
 
+        // Use a constant options object to prevent GC pressure
+        const options = new faceapi.TinyFaceDetectorOptions({ inputSize: 512, scoreThreshold: 0.5 });
+
         const detectFace = async () => {
             if (!videoRef.current || !canvasRef.current) return;
 
             const startTime = performance.now();
 
-            // Detect single face
-            const detection = await faceapi.detectSingleFace(videoRef.current, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.6 }))
+            // Detect single face using TinyFaceDetector for speed
+            const detection = await faceapi.detectSingleFace(videoRef.current, options)
                 .withFaceLandmarks()
                 .withFaceDescriptor();
 

@@ -67,8 +67,103 @@ export default function DashboardContent() {
         fetchStats();
     }, []);
 
+    const [locationStatus, setLocationStatus] = useState<'loading' | 'allowed' | 'denied' | 'out-of-range' | 'error'>('loading');
+    const [distance, setDistance] = useState<number | null>(null);
+    const [branchLocation, setBranchLocation] = useState<{ lat: number, lng: number, radius: number } | null>(null);
+    const watchIdRef = useRef<number | null>(null);
+
+    const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+        const R = 6371e3; // metres
+        const φ1 = lat1 * Math.PI / 180;
+        const φ2 = lat2 * Math.PI / 180;
+        const Δφ = (lat2 - lat1) * Math.PI / 180;
+        const Δλ = (lon2 - lon1) * Math.PI / 180;
+
+        const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+            Math.cos(φ1) * Math.cos(φ2) *
+            Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+        return R * c;
+    };
+
+    const startLocationWatch = useCallback(async () => {
+        setLocationStatus('loading');
+        try {
+            // 1. Fetch Branch Settings first
+            const res = await fetch('/api/settings/location');
+            const data = await res.json();
+
+            if (!data.success || !data.location || !data.location.latitude) {
+                console.warn('No branch location set, skipping check');
+                setLocationStatus('allowed');
+                return;
+            }
+
+            const branch = data.location;
+            setBranchLocation({ lat: branch.latitude, lng: branch.longitude, radius: branch.radius || 100 });
+
+            // 2. Start Watch
+            if (!navigator.geolocation) {
+                setLocationStatus('error');
+                return;
+            }
+
+            watchIdRef.current = navigator.geolocation.watchPosition(
+                (position) => {
+                    const userLat = position.coords.latitude;
+                    const userLng = position.coords.longitude;
+
+                    const dist = calculateDistance(userLat, userLng, branch.latitude, branch.longitude);
+                    setDistance(Math.round(dist));
+
+                    if (dist <= (branch.radius || 100)) {
+                        setLocationStatus('allowed');
+                    } else {
+                        setLocationStatus('out-of-range');
+                    }
+                },
+                (error) => {
+                    console.error('Location error:', error);
+                    if (error.code === error.PERMISSION_DENIED) {
+                        setLocationStatus('denied');
+                    } else {
+                        setLocationStatus('error');
+                    }
+                },
+                { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
+            );
+
+        } catch (error) {
+            console.error('Failed to init location check:', error);
+            setLocationStatus('error');
+        }
+    }, []);
+
+    useEffect(() => {
+        startLocationWatch();
+        return () => {
+            if (watchIdRef.current !== null) {
+                navigator.geolocation.clearWatch(watchIdRef.current);
+            }
+        };
+    }, [startLocationWatch]);
+
+
     const handleFaceMatch = useCallback(async (bestMatch: faceapi.FaceMatch) => {
         if (processingMatchRef.current || bestMatch.label === 'unknown') return;
+
+        // --- LOCATION ENFORCEMENT ---
+        if (locationStatus === 'out-of-range') {
+            toast.error(`Cannot mark attendance: You are ${distance}m away.`, { id: 'location-error' });
+            return;
+        }
+        if (locationStatus === 'denied' || locationStatus === 'error') {
+            toast.error('Cannot mark attendance: Location verification failed.', { id: 'location-error' });
+            return;
+        }
+        // -----------------------------
+
         processingMatchRef.current = true;
 
         try {
@@ -119,85 +214,7 @@ export default function DashboardContent() {
                 processingMatchRef.current = false;
             }, 3000);
         }
-    }, []);
-
-    const [locationStatus, setLocationStatus] = useState<'loading' | 'allowed' | 'denied' | 'out-of-range' | 'error'>('loading');
-    const [distance, setDistance] = useState<number | null>(null);
-    const [branchLocation, setBranchLocation] = useState<{ lat: number, lng: number, radius: number } | null>(null);
-
-    const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
-        const R = 6371e3; // metres
-        const φ1 = lat1 * Math.PI / 180;
-        const φ2 = lat2 * Math.PI / 180;
-        const Δφ = (lat2 - lat1) * Math.PI / 180;
-        const Δλ = (lon2 - lon1) * Math.PI / 180;
-
-        const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-            Math.cos(φ1) * Math.cos(φ2) *
-            Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-        return R * c;
-    };
-
-    const checkLocation = useCallback(async () => {
-        setLocationStatus('loading');
-        try {
-            // 1. Fetch Branch Settings
-            const res = await fetch('/api/settings/location');
-            const data = await res.json();
-
-            if (!data.success || !data.location || !data.location.latitude) {
-                // If no location set, allow access (or block depends on policy, assuming allow for now if not set)
-                console.warn('No branch location set, skipping check');
-                setLocationStatus('allowed');
-                return;
-            }
-
-            const branch = data.location;
-            setBranchLocation({ lat: branch.latitude, lng: branch.longitude, radius: branch.radius || 100 });
-
-            // 2. Get User Location
-            if (!navigator.geolocation) {
-                // don't toast on load, just set status
-                setLocationStatus('error');
-                return;
-            }
-
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    const userLat = position.coords.latitude;
-                    const userLng = position.coords.longitude;
-
-                    const dist = calculateDistance(userLat, userLng, branch.latitude, branch.longitude);
-                    setDistance(Math.round(dist));
-
-                    if (dist <= (branch.radius || 100)) {
-                        setLocationStatus('allowed');
-                    } else {
-                        setLocationStatus('out-of-range');
-                    }
-                },
-                (error) => {
-                    console.error('Location error:', error);
-                    if (error.code === error.PERMISSION_DENIED) {
-                        setLocationStatus('denied');
-                    } else {
-                        setLocationStatus('error');
-                    }
-                },
-                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-            );
-
-        } catch (error) {
-            console.error('Failed to check location:', error);
-            setLocationStatus('error');
-        }
-    }, []);
-
-    useEffect(() => {
-        checkLocation();
-    }, [checkLocation]);
+    }, [locationStatus, distance]); // Added dependencies
 
     const handleScanClick = () => {
         if (locationStatus === 'loading') {
@@ -205,17 +222,8 @@ export default function DashboardContent() {
             return;
         }
 
-        if (locationStatus === 'allowed') {
-            setIsScannerOpen(true);
-        } else if (locationStatus === 'out-of-range') {
-            toast.error(`You are ${distance}m away. Must be within ${branchLocation?.radius}m.`);
-        } else if (locationStatus === 'denied') {
-            toast.error('Location access denied. Please enable location.');
-        } else {
-            toast.error('Unable to verify location.');
-            // Try checking again
-            checkLocation();
-        }
+        // Allow opening even if out of range - the Modal will show warning
+        setIsScannerOpen(true);
     };
 
 
@@ -228,6 +236,9 @@ export default function DashboardContent() {
                 onClose={() => setIsScannerOpen(false)}
                 onFaceMatch={handleFaceMatch}
                 labeledDescriptors={labeledDescriptors}
+                locationStatus={locationStatus}
+                distance={distance}
+                maxDistance={branchLocation?.radius}
             />
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
