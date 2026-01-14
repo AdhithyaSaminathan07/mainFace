@@ -259,7 +259,7 @@ export default function FaceCamera({ onFaceDetected, onFaceMatch, labeledDescrip
             }
 
             // Loop
-            setTimeout(detectFace, 30);
+            setTimeout(detectFace, 100);
         };
 
         detectFace();

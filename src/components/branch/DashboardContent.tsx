@@ -222,8 +222,29 @@ export default function DashboardContent() {
             return;
         }
 
-        // Allow opening even if out of range - the Modal will show warning
+        if (locationStatus === 'out-of-range') {
+            toast.error(`You are ${distance ? distance + 'm' : ''} away from the branch location.`, { id: 'location-error' });
+            return;
+        }
+
+        if (locationStatus === 'denied') {
+            toast.error('Location access denied. Please enable location services.', { id: 'location-error' });
+            return;
+        }
+
+        if (locationStatus === 'error') {
+            toast.error('Unable to verify location.', { id: 'location-error' });
+            return;
+        }
+
         setIsScannerOpen(true);
+    };
+
+    const getButtonStyles = () => {
+        if (locationStatus === 'out-of-range') return 'from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 shadow-red-600/20';
+        if (locationStatus === 'denied' || locationStatus === 'error') return 'from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 shadow-gray-600/20';
+        if (locationStatus === 'loading') return 'from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 shadow-yellow-600/20';
+        return 'from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-blue-600/20';
     };
 
 
@@ -245,27 +266,45 @@ export default function DashboardContent() {
                 {/* Main Content Area */}
                 <div className="lg:col-span-2 space-y-6">
                     {/* Quick Action Tag */}
-                    <button
-                        onClick={handleScanClick}
-                        disabled={loading || !isModelsLoaded}
-                        className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white p-6 rounded-2xl shadow-lg shadow-blue-600/20 transition-all transform hover:-translate-y-1 flex items-center justify-between group disabled:opacity-75 disabled:cursor-not-allowed"
-                    >
-                        <div className="flex items-center gap-4">
-                            <div className="p-3 bg-white/10 rounded-xl group-hover:scale-110 transition-transform">
-                                <ViewfinderCircleIcon className="w-8 h-8 text-white" />
+                    <div className="relative">
+                        <button
+                            onClick={handleScanClick}
+                            disabled={loading || !isModelsLoaded}
+                            className={`w-full bg-gradient-to-r ${getButtonStyles()} text-white p-6 rounded-2xl shadow-lg transition-all transform hover:-translate-y-1 flex items-center justify-between group disabled:opacity-75 disabled:cursor-not-allowed`}
+                        >
+                            <div className="flex items-center gap-4">
+                                <div className="p-3 bg-white/10 rounded-xl group-hover:scale-110 transition-transform">
+                                    <ViewfinderCircleIcon className="w-8 h-8 text-white" />
+                                </div>
+                                <div className="text-left">
+                                    <h3 className="text-xl font-bold">Face Recognition</h3>
+                                    <p className="text-blue-100 text-sm">
+                                        {locationStatus === 'out-of-range' ? `Out of Range (${distance}m)` :
+                                            locationStatus === 'denied' ? 'Location Access Denied' :
+                                                locationStatus === 'loading' ? 'Verifying Location...' : 'Tap to mark attendance'}
+                                    </p>
+                                </div>
                             </div>
-                            <div className="text-left">
-                                <h3 className="text-xl font-bold">Face Recognition</h3>
-                                <p className="text-blue-100 text-sm">Tap to mark attendance</p>
+                            <div className="flex items-center gap-2 text-blue-100 text-sm font-medium">
+                                {loading ? 'Loading data...' : !isModelsLoaded ? 'Initializing AI...' :
+                                    locationStatus === 'allowed' ? 'Ready to scan' : 'Location restricted'}
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 group-hover:translate-x-1 transition-transform">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+                                </svg>
                             </div>
-                        </div>
-                        <div className="flex items-center gap-2 text-blue-100 text-sm font-medium">
-                            {loading ? 'Loading data...' : !isModelsLoaded ? 'Initializing AI...' : 'Ready to scan'}
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 group-hover:translate-x-1 transition-transform">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
-                            </svg>
-                        </div>
-                    </button>
+                        </button>
+                        {locationStatus !== 'loading' && (
+                            <button
+                                onClick={() => startLocationWatch()}
+                                className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors"
+                                title="Refresh Location"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+                                </svg>
+                            </button>
+                        )}
+                    </div>
 
                     {/* Dashboard Stats */}
                     <div className="grid grid-cols-2 gap-6">
