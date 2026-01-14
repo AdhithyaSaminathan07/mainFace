@@ -34,6 +34,14 @@ export default function FaceCamera({ onFaceDetected, onFaceMatch, labeledDescrip
         } else {
             setMessage('Loading models...');
         }
+
+        return () => {
+            // Cleanup: Stop all video tracks immediately
+            if (videoRef.current && videoRef.current.srcObject) {
+                const stream = videoRef.current.srcObject as MediaStream;
+                stream.getTracks().forEach(track => track.stop());
+            }
+        };
     }, [isModelsLoaded, error]);
 
     useEffect(() => {

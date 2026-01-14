@@ -184,10 +184,11 @@ export default function DashboardContent() {
             const data = await res.json();
 
             if (data.success) {
-                toast.success(data.message);
+                toast.success(data.message, { icon: data.type === 'IN' ? '👋' : '🚪' });
                 setActivities(prev => [{
                     id: Date.now(),
                     text: data.message,
+                    type: data.type, // Store type
                     time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                 }, ...prev.slice(0, 9)]);
 
@@ -196,7 +197,7 @@ export default function DashboardContent() {
 
                 setTimeout(() => {
                     setIsScannerOpen(false);
-                }, 1500);
+                }, 1000);
 
             } else {
                 if (data.message) {
@@ -212,7 +213,7 @@ export default function DashboardContent() {
         } finally {
             setTimeout(() => {
                 processingMatchRef.current = false;
-            }, 3000);
+            }, 2500);
         }
     }, [locationStatus, distance]); // Added dependencies
 
@@ -329,10 +330,13 @@ export default function DashboardContent() {
                             Recent Activity
                         </h2>
                         <div className="flex-1 overflow-y-auto pr-2 space-y-3">
-                            {activities.map((activity) => (
+                            {activities.map((activity: any) => (
                                 <div key={activity.id} className="flex gap-3 items-start p-3 rounded-lg bg-gray-50 border border-gray-100/50 hover:bg-gray-100 transition-colors group">
-                                    <div className="w-8 h-8 rounded-full bg-white border border-gray-200 text-gray-500 flex items-center justify-center text-xs font-bold shrink-0 shadow-sm group-hover:border-blue-200 group-hover:text-blue-600 transition-colors">
-                                        {activity.text.charAt(0)}
+                                    <div className={`w-8 h-8 rounded-full border flex items-center justify-center text-xs font-bold shrink-0 shadow-sm transition-colors ${activity.type === 'IN' ? 'bg-green-50 border-green-200 text-green-600' :
+                                            activity.type === 'OUT' ? 'bg-orange-50 border-orange-200 text-orange-600' :
+                                                'bg-white border-gray-200 text-gray-500'
+                                        }`}>
+                                        {activity.type === 'IN' ? 'IN' : activity.type === 'OUT' ? 'OUT' : activity.text.charAt(0)}
                                     </div>
                                     <div>
                                         <p className="text-sm font-medium text-gray-900 leading-snug">{activity.text}</p>

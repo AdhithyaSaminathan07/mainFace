@@ -82,7 +82,12 @@ export default function FaceScanModal({ isOpen, onClose, onFaceMatch, labeledDes
                                                 </svg>
                                             </div>
                                             <h3 className="text-2xl font-bold text-gray-900 mb-2">Authenticated!</h3>
-                                            <p className="text-gray-500">Marking attendance for {lastMatch?.split('(')[0]}...</p>
+                                            <p className="text-gray-500 mb-6">Marking attendance for {lastMatch?.split('(')[0]}...</p>
+
+                                            {/* Progress Bar (Line Running) */}
+                                            <div className="w-64 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                                                <div className="h-full bg-green-500 animate-[progress_1s_linear_forwards] origin-left"></div>
+                                            </div>
                                         </div>
                                     )}
 
@@ -98,20 +103,21 @@ export default function FaceScanModal({ isOpen, onClose, onFaceMatch, labeledDes
 
                                     <div className="relative w-full h-[60vh] sm:h-[600px] bg-gray-900 overflow-hidden sm:rounded-2xl cursor-crosshair sm:border sm:border-gray-200 sm:shadow-inner sm:ring-4 sm:ring-gray-50 flex flex-col items-center justify-center group">
                                         {/* Scanning Animation (Pure CSS) */}
-                                        {(!isSuccess && locationStatus === 'allowed' || !locationStatus) && (
+                                        {(!isSuccess && (locationStatus === 'allowed' || !locationStatus)) && (
                                             <div className="absolute inset-0 pointer-events-none z-10 opacity-50">
                                                 <div className="w-full h-1 bg-blue-500/50 absolute top-0 animate-[scan_2s_linear_infinite] shadow-[0_0_15px_rgba(59,130,246,0.5)]"></div>
                                             </div>
                                         )}
 
-                                        {locationStatus === 'allowed' || !locationStatus ? (
+                                        {/* Render Camera ONLY if NOT success and location is ok */}
+                                        {!isSuccess && (locationStatus === 'allowed' || !locationStatus) ? (
                                             <FaceCamera
                                                 mode="scan"
                                                 labeledDescriptors={labeledDescriptors}
                                                 onFaceMatch={handleMatch}
                                                 showAdvancedVisuals={true}
                                             />
-                                        ) : (
+                                        ) : !isSuccess ? (
                                             <div className="text-center p-6 text-white/80">
                                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-16 h-16 mx-auto mb-4 opacity-50">
                                                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
@@ -121,7 +127,7 @@ export default function FaceScanModal({ isOpen, onClose, onFaceMatch, labeledDes
                                                     {locationStatus === 'out-of-range' ? 'You are not at the branch location.' : 'Location verification failed.'}
                                                 </p>
                                             </div>
-                                        )}
+                                        ) : null}
                                     </div>
                                     <div className="text-center p-4 bg-white shrink-0">
                                         <h4 className="text-lg font-medium text-gray-900">

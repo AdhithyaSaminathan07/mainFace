@@ -67,10 +67,10 @@ export async function POST(req: NextRequest) {
             newType = 'OUT';
         }
 
-        // Optional: Prevent double scanning (e.g., if scanned again within 1 minute)
+        // Optional: Prevent double scanning (e.g., if scanned again within 10 seconds)
         if (lastAttendance) {
             const timeDiff = new Date().getTime() - new Date(lastAttendance.timestamp).getTime();
-            if (timeDiff < 60 * 1000) { // 1 minute cooldown
+            if (timeDiff < 10 * 1000) { // 10 seconds cooldown
                 return NextResponse.json({
                     success: false,
                     message: `Already checked ${lastAttendance.type} recently. Please wait a moment.`
@@ -95,8 +95,8 @@ export async function POST(req: NextRequest) {
             attendance: newAttendance,
             type: newType,
             message: newType === 'IN'
-                ? `Welcome, ${member.fullName}`
-                : `Goodbye, ${member.fullName}`
+                ? `Checked IN: Welcome, ${member.fullName}`
+                : `Checked OUT: Goodbye, ${member.fullName}`
         });
 
     } catch (error: any) {
