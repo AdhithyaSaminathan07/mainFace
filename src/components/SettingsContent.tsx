@@ -100,8 +100,16 @@ export default function SettingsContent() {
 
             const data = await res.json();
 
-            if (data.success) {
+            if (data.success && data.data) {
                 toast.success('Settings updated successfully', { id: toastId });
+                // Update local state to ensure it matches server
+                setSettings({
+                    latitude: data.data.location?.latitude?.toString() || settings.latitude,
+                    longitude: data.data.location?.longitude?.toString() || settings.longitude,
+                    radius: data.data.location?.radius?.toString() || settings.radius,
+                    ipAddress: data.data.ipSettings?.address || settings.ipAddress,
+                    ipEnabled: data.data.ipSettings?.enabled || settings.ipEnabled
+                });
             } else {
                 toast.error(data.error || 'Failed to update settings', { id: toastId });
             }

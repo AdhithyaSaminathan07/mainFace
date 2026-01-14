@@ -91,7 +91,7 @@ export default function DashboardContent() {
         setLocationStatus('loading');
         try {
             // 1. Fetch Branch Settings first
-            const res = await fetch('/api/settings/location');
+            const res = await fetch('/api/settings/location', { cache: 'no-store' });
             const data = await res.json();
 
             if (!data.success || !data.location || !data.location.latitude) {

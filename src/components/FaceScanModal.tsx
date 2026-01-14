@@ -18,10 +18,15 @@ interface FaceScanModalProps {
 
 export default function FaceScanModal({ isOpen, onClose, onFaceMatch, labeledDescriptors, locationStatus, distance, maxDistance }: FaceScanModalProps) {
     const [lastMatch, setLastMatch] = useState<string | null>(null);
+    const [isSuccess, setIsSuccess] = useState(false);
+
+    // Reset success state when modal opens
+    if (!isOpen && isSuccess) {
+        setIsSuccess(false);
+    }
 
     const handleMatch = (match: faceapi.FaceMatch) => {
-        // Prevent spamming the same match locally if needed, but the parent handles API cooldowns.
-        // We can show visual feedback here.
+        setIsSuccess(true);
         setLastMatch(match.label);
         onFaceMatch(match);
     };
@@ -67,7 +72,20 @@ export default function FaceScanModal({ isOpen, onClose, onFaceMatch, labeledDes
                                 </div>
 
                                 {/* Body */}
-                                <div className="p-0 sm:p-6 flex-1 overflow-hidden flex flex-col">
+                                <div className="p-0 sm:p-6 flex-1 overflow-hidden flex flex-col relative">
+                                    {/* Success Overlay */}
+                                    {isSuccess && (
+                                        <div className="absolute inset-0 z-50 bg-white/95 backdrop-blur flex flex-col items-center justify-center animate-in fade-in zoom-in duration-300">
+                                            <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mb-4 animate-bounce">
+                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-12 h-12 text-green-600">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                                                </svg>
+                                            </div>
+                                            <h3 className="text-2xl font-bold text-gray-900 mb-2">Authenticated!</h3>
+                                            <p className="text-gray-500">Marking attendance for {lastMatch?.split('(')[0]}...</p>
+                                        </div>
+                                    )}
+
                                     {/* Location Warning Banner */}
                                     {locationStatus === 'out-of-range' && (
                                         <div className="mb-4 bg-red-50 border border-red-200 rounded-lg p-3 flex items-center justify-center text-red-700 animate-pulse">
@@ -78,7 +96,14 @@ export default function FaceScanModal({ isOpen, onClose, onFaceMatch, labeledDes
                                         </div>
                                     )}
 
-                                    <div className="relative w-full h-[60vh] sm:h-[600px] bg-gray-900 overflow-hidden sm:rounded-2xl cursor-crosshair sm:border sm:border-gray-200 sm:shadow-inner sm:ring-4 sm:ring-gray-50 flex flex-col items-center justify-center">
+                                    <div className="relative w-full h-[60vh] sm:h-[600px] bg-gray-900 overflow-hidden sm:rounded-2xl cursor-crosshair sm:border sm:border-gray-200 sm:shadow-inner sm:ring-4 sm:ring-gray-50 flex flex-col items-center justify-center group">
+                                        {/* Scanning Animation (Pure CSS) */}
+                                        {(!isSuccess && locationStatus === 'allowed' || !locationStatus) && (
+                                            <div className="absolute inset-0 pointer-events-none z-10 opacity-50">
+                                                <div className="w-full h-1 bg-blue-500/50 absolute top-0 animate-[scan_2s_linear_infinite] shadow-[0_0_15px_rgba(59,130,246,0.5)]"></div>
+                                            </div>
+                                        )}
+
                                         {locationStatus === 'allowed' || !locationStatus ? (
                                             <FaceCamera
                                                 mode="scan"
@@ -100,10 +125,10 @@ export default function FaceScanModal({ isOpen, onClose, onFaceMatch, labeledDes
                                     </div>
                                     <div className="text-center p-4 bg-white shrink-0">
                                         <h4 className="text-lg font-medium text-gray-900">
-                                            {locationStatus === 'allowed' || !locationStatus ? 'Position your face within the frame' : 'Scanner unavailable'}
+                                            {isSuccess ? 'Verified' : (locationStatus === 'allowed' || !locationStatus ? 'Position your face within the frame' : 'Scanner unavailable')}
                                         </h4>
                                         <p className="text-gray-500 text-sm mt-1">
-                                            {locationStatus === 'allowed' || !locationStatus ? 'The system will automatically mark your attendance when recognized.' : 'Please return to the branch location to scan.'}
+                                            {isSuccess ? 'Please wait...' : (locationStatus === 'allowed' || !locationStatus ? 'The system will automatically mark your attendance when recognized.' : 'Please return to the branch location to scan.')}
                                         </p>
                                     </div>
                                 </div>
