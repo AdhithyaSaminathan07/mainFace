@@ -94,13 +94,13 @@ export default function DashboardContent() {
             const res = await fetch('/api/settings/location', { cache: 'no-store' });
             const data = await res.json();
 
-            if (!data.success || !data.location || !data.location.latitude) {
+            if (!data.success || !data.data || !data.data.latitude) {
                 console.warn('No branch location set, skipping check');
                 setLocationStatus('allowed');
                 return;
             }
 
-            const branch = data.location;
+            const branch = data.data;
             setBranchLocation({ lat: branch.latitude, lng: branch.longitude, radius: branch.radius || 100 });
 
             // 2. Start Watch
@@ -333,8 +333,8 @@ export default function DashboardContent() {
                             {activities.map((activity: any) => (
                                 <div key={activity.id} className="flex gap-3 items-start p-3 rounded-lg bg-gray-50 border border-gray-100/50 hover:bg-gray-100 transition-colors group">
                                     <div className={`w-8 h-8 rounded-full border flex items-center justify-center text-xs font-bold shrink-0 shadow-sm transition-colors ${activity.type === 'IN' ? 'bg-green-50 border-green-200 text-green-600' :
-                                            activity.type === 'OUT' ? 'bg-orange-50 border-orange-200 text-orange-600' :
-                                                'bg-white border-gray-200 text-gray-500'
+                                        activity.type === 'OUT' ? 'bg-orange-50 border-orange-200 text-orange-600' :
+                                            'bg-white border-gray-200 text-gray-500'
                                         }`}>
                                         {activity.type === 'IN' ? 'IN' : activity.type === 'OUT' ? 'OUT' : activity.text.charAt(0)}
                                     </div>
