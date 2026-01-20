@@ -67,8 +67,9 @@ export default function DashboardContent() {
         fetchStats();
     }, []);
 
-    const [locationStatus, setLocationStatus] = useState<'loading' | 'allowed' | 'denied' | 'out-of-range' | 'error'>('loading');
+    const [locationStatus, setLocationStatus] = useState<'loading' | 'allowed' | 'denied' | 'out-of-range' | 'error' | 'weak-signal'>('loading');
     const [distance, setDistance] = useState<number | null>(null);
+    const [accuracy, setAccuracy] = useState<number | null>(null);
     const [branchLocation, setBranchLocation] = useState<{ lat: number, lng: number, radius: number } | null>(null);
     const watchIdRef = useRef<number | null>(null);
 
@@ -113,13 +114,22 @@ export default function DashboardContent() {
                 (position) => {
                     const userLat = position.coords.latitude;
                     const userLng = position.coords.longitude;
+                    const acc = position.coords.accuracy;
+                    setAccuracy(Math.round(acc));
 
                     const dist = calculateDistance(userLat, userLng, branch.latitude, branch.longitude);
                     setDistance(Math.round(dist));
 
+                    // If accuracy is very poor (> 100m) and user is near the boundary, warn them
+                    // But for now, we mainly want to surface this info.
+                    // Let's stick to the radius check.
+
                     if (dist <= (branch.radius || 100)) {
+                        // Optional: strict mode could check if (acc > 50) setLocationStatus('weak-signal');
                         setLocationStatus('allowed');
                     } else {
+                        // Logic: If (dist - acc) < radius, they MIGHT be inside.
+                        // But usually we just say out of range.
                         setLocationStatus('out-of-range');
                     }
                 },
@@ -260,6 +270,7 @@ export default function DashboardContent() {
                 labeledDescriptors={labeledDescriptors}
                 locationStatus={locationStatus}
                 distance={distance}
+                accuracy={accuracy}
                 maxDistance={branchLocation?.radius}
             />
 

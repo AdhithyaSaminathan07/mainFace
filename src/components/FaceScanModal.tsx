@@ -11,12 +11,13 @@ interface FaceScanModalProps {
     onClose: () => void;
     onFaceMatch: (match: faceapi.FaceMatch) => void;
     labeledDescriptors: faceapi.LabeledFaceDescriptors[];
-    locationStatus?: 'loading' | 'allowed' | 'denied' | 'out-of-range' | 'error';
+    locationStatus?: 'loading' | 'allowed' | 'denied' | 'out-of-range' | 'error' | 'weak-signal';
     distance?: number | null;
+    accuracy?: number | null;
     maxDistance?: number;
 }
 
-export default function FaceScanModal({ isOpen, onClose, onFaceMatch, labeledDescriptors, locationStatus, distance, maxDistance }: FaceScanModalProps) {
+export default function FaceScanModal({ isOpen, onClose, onFaceMatch, labeledDescriptors, locationStatus, distance, accuracy, maxDistance }: FaceScanModalProps) {
     const [lastMatch, setLastMatch] = useState<string | null>(null);
     const [isSuccess, setIsSuccess] = useState(false);
 
@@ -97,20 +98,35 @@ export default function FaceScanModal({ isOpen, onClose, onFaceMatch, labeledDes
                                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 mr-2">
                                                 <path fillRule="evenodd" d="M9.401 3.003c1.155-2 4.043-2 5.197 0l7.355 12.748c1.154 2-.29 4.5-2.599 4.5H4.645c-2.309 0-3.752-2.5-2.598-4.5L9.4 3.003ZM12 8.25a.75.75 0 0 1 .75.75v3.75a.75.75 0 0 1-1.5 0V9a.75.75 0 0 1 .75-.75Zm0 8.25a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Z" clipRule="evenodd" />
                                             </svg>
-                                            <span className="font-medium">Out of Range: You are {distance}m away. Move within {maxDistance}m to mark attendance.</span>
+                                            <span className="font-medium">
+                                                Out of Range: You are {distance}m away.
+                                                {accuracy ? <span className="text-sm opacity-75 ml-1">(Accuracy: ±{accuracy}m)</span> : ''}
+                                                Move within {maxDistance}m.
+                                            </span>
+                                        </div>
+                                    )}
+
+                                    {locationStatus === 'weak-signal' && (
+                                        <div className="mb-4 bg-yellow-50 border border-yellow-200 rounded-lg p-3 flex items-center justify-center text-yellow-800">
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 mr-2">
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                                            </svg>
+                                            <span className="font-medium">
+                                                Weak GPS Signal (Accuracy: ±{accuracy}m). Please move outdoors or near a window.
+                                            </span>
                                         </div>
                                     )}
 
                                     <div className="relative w-full h-[60vh] sm:h-[600px] bg-gray-900 overflow-hidden sm:rounded-2xl cursor-crosshair sm:border sm:border-gray-200 sm:shadow-inner sm:ring-4 sm:ring-gray-50 flex flex-col items-center justify-center group">
                                         {/* Scanning Animation (Pure CSS) */}
-                                        {(!isSuccess && (locationStatus === 'allowed' || !locationStatus)) && (
+                                        {(!isSuccess && (locationStatus === 'allowed' || locationStatus === 'weak-signal' || !locationStatus)) && (
                                             <div className="absolute inset-0 pointer-events-none z-10 opacity-50">
                                                 <div className="w-full h-1 bg-blue-500/50 absolute top-0 animate-[scan_2s_linear_infinite] shadow-[0_0_15px_rgba(59,130,246,0.5)]"></div>
                                             </div>
                                         )}
 
                                         {/* Render Camera ONLY if NOT success and location is ok */}
-                                        {!isSuccess && (locationStatus === 'allowed' || !locationStatus) ? (
+                                        {!isSuccess && (locationStatus === 'allowed' || locationStatus === 'weak-signal' || !locationStatus) ? (
                                             <FaceCamera
                                                 mode="scan"
                                                 labeledDescriptors={labeledDescriptors}
@@ -131,10 +147,10 @@ export default function FaceScanModal({ isOpen, onClose, onFaceMatch, labeledDes
                                     </div>
                                     <div className="text-center p-4 bg-white shrink-0">
                                         <h4 className="text-lg font-medium text-gray-900">
-                                            {isSuccess ? 'Verified' : (locationStatus === 'allowed' || !locationStatus ? 'Position your face within the frame' : 'Scanner unavailable')}
+                                            {isSuccess ? 'Verified' : (locationStatus === 'allowed' || locationStatus === 'weak-signal' || !locationStatus ? 'Position your face within the frame' : 'Scanner unavailable')}
                                         </h4>
                                         <p className="text-gray-500 text-sm mt-1">
-                                            {isSuccess ? 'Please wait...' : (locationStatus === 'allowed' || !locationStatus ? 'The system will automatically mark your attendance when recognized.' : 'Please return to the branch location to scan.')}
+                                            {isSuccess ? 'Please wait...' : (locationStatus === 'allowed' || locationStatus === 'weak-signal' || !locationStatus ? 'The system will automatically mark your attendance when recognized.' : 'Please return to the branch location to scan.')}
                                         </p>
                                     </div>
                                 </div>
