@@ -34,7 +34,7 @@ export default function SettingsContent() {
         fetchSettings();
     }, []);
 
-    const handleGetCurrentLocation = () => {
+    const handleGetCurrentLocation = async () => {
         if (!navigator.geolocation) {
             toast.error('Geolocation is not supported by your browser');
             return;
@@ -42,39 +42,65 @@ export default function SettingsContent() {
 
         const toastId = toast.loading('Fetching location...');
 
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
+        const getPosition = (options: PositionOptions): Promise<GeolocationPosition> => {
+            return new Promise((resolve, reject) => {
+                navigator.geolocation.getCurrentPosition(resolve, reject, options);
+            });
+        };
+
+        try {
+            // Attempt 1: High Accuracy
+            try {
+                const position = await getPosition({
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0
+                });
+
                 toast.dismiss(toastId);
                 setSettings(prev => ({
                     ...prev,
                     latitude: position.coords.latitude.toString(),
                     longitude: position.coords.longitude.toString()
                 }));
-                toast.success('Location fetched successfully');
-            },
-            (error) => {
-                toast.dismiss(toastId);
-                console.error('Error fetching location:', error);
-                switch (error.code) {
-                    case error.PERMISSION_DENIED:
-                        toast.error('Location permission denied');
-                        break;
-                    case error.POSITION_UNAVAILABLE:
-                        toast.error('Location information unavailable');
-                        break;
-                    case error.TIMEOUT:
-                        toast.error('Location request timed out');
-                        break;
-                    default:
-                        toast.error('Failed to fetch location');
-                }
-            },
-            {
-                enableHighAccuracy: true,
-                timeout: 15000,
-                maximumAge: 0
+                toast.success('Location fetched successfully (GPS)');
+                return;
+            } catch (err) {
+                console.warn('High accuracy failed, trying low accuracy...', err);
             }
-        );
+
+            // Attempt 2: Low Accuracy (Fallback)
+            const position = await getPosition({
+                enableHighAccuracy: false,
+                timeout: 10000,
+                maximumAge: 0
+            });
+
+            toast.dismiss(toastId);
+            setSettings(prev => ({
+                ...prev,
+                latitude: position.coords.latitude.toString(),
+                longitude: position.coords.longitude.toString()
+            }));
+            toast.success('Location fetched successfully (Network)');
+
+        } catch (error: any) {
+            toast.dismiss(toastId);
+            console.error('Error fetching location:', error);
+            switch (error.code) {
+                case error.PERMISSION_DENIED:
+                    toast.error('Location permission denied');
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    toast.error('Location information unavailable');
+                    break;
+                case error.TIMEOUT:
+                    toast.error('Location request timed out. Please check your GPS settings.');
+                    break;
+                default:
+                    toast.error('Failed to fetch location');
+            }
+        }
     };
 
     const handleGetCurrentIP = async () => {

@@ -88,7 +88,7 @@ export default function DashboardContent() {
         return R * c;
     };
 
-    const startLocationWatch = useCallback(async () => {
+    const startLocationWatch = useCallback(async (useHighAccuracy = true) => {
         setLocationStatus('loading');
         try {
             // 1. Fetch Branch Settings first
@@ -110,6 +110,11 @@ export default function DashboardContent() {
                 return;
             }
 
+            // Clear any existing watch
+            if (watchIdRef.current !== null) {
+                navigator.geolocation.clearWatch(watchIdRef.current);
+            }
+
             watchIdRef.current = navigator.geolocation.watchPosition(
                 (position) => {
                     const userLat = position.coords.latitude;
@@ -120,28 +125,37 @@ export default function DashboardContent() {
                     const dist = calculateDistance(userLat, userLng, branch.latitude, branch.longitude);
                     setDistance(Math.round(dist));
 
-                    // If accuracy is very poor (> 100m) and user is near the boundary, warn them
-                    // But for now, we mainly want to surface this info.
-                    // Let's stick to the radius check.
-
                     if (dist <= (branch.radius || 100)) {
-                        // Optional: strict mode could check if (acc > 50) setLocationStatus('weak-signal');
                         setLocationStatus('allowed');
                     } else {
-                        // Logic: If (dist - acc) < radius, they MIGHT be inside.
-                        // But usually we just say out of range.
                         setLocationStatus('out-of-range');
                     }
                 },
                 (error) => {
-                    console.error('Location error:', error);
+                    console.error(`Location error (HighAccuracy: ${useHighAccuracy}):`, error);
+
+                    // If high accuracy fails, try low accuracy automatically
+                    if (useHighAccuracy && error.code !== error.PERMISSION_DENIED) {
+                        console.log('Falling back to low accuracy...');
+                        startLocationWatch(false); // Retry with low accuracy
+                        return;
+                    }
+
                     if (error.code === error.PERMISSION_DENIED) {
                         setLocationStatus('denied');
+                    } else if (error.code === error.TIMEOUT) {
+                        // Even low accuracy timed out?
+                        setLocationStatus('error');
+                        toast.error('Location request timed out. Please check GPS.');
                     } else {
                         setLocationStatus('error');
                     }
                 },
-                { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
+                {
+                    enableHighAccuracy: useHighAccuracy,
+                    timeout: 20000,
+                    maximumAge: 0
+                }
             );
 
         } catch (error) {
