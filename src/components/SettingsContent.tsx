@@ -68,6 +68,11 @@ export default function SettingsContent() {
                     default:
                         toast.error('Failed to fetch location');
                 }
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 15000,
+                maximumAge: 0
             }
         );
     };
