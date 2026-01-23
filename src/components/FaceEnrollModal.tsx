@@ -10,14 +10,28 @@ interface FaceEnrollModalProps {
     isOpen: boolean;
     onClose: () => void;
     onEnroll: (descriptor: Float32Array, image: string) => void;
+    existingMembers?: any[];
 }
 
-export default function FaceEnrollModal({ isOpen, onClose, onEnroll }: FaceEnrollModalProps) {
+export default function FaceEnrollModal({ isOpen, onClose, onEnroll, existingMembers = [] }: FaceEnrollModalProps) {
     const [qualityScore, setQualityScore] = useState(0);
     const [qualityMetrics, setQualityMetrics] = useState({ fps: 0, resolution: '0x0', angle: 'N/A' });
     const [isCaptured, setIsCaptured] = useState(false);
 
     const handleFaceDetected = (descriptor: Float32Array, image: string) => {
+        // Check for duplicates
+        if (existingMembers && existingMembers.length > 0) {
+            for (const member of existingMembers) {
+                if (member.faceDescriptor && member.faceDescriptor.length > 0) {
+                    const distance = faceapi.euclideanDistance(descriptor, member.faceDescriptor);
+                    if (distance < 0.6) { // Threshold for match
+                        alert(`This face is already registered to ${member.fullName} (ID: ${member.employeeId})`);
+                        return; // Block enrollment
+                    }
+                }
+            }
+        }
+
         setIsCaptured(true);
         // Play success sound or animation delay
         setTimeout(() => {

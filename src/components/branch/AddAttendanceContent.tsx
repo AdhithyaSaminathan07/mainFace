@@ -20,16 +20,24 @@ export default function AddAttendanceContent() {
     const [capturedImage, setCapturedImage] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isEnrollModalOpen, setIsEnrollModalOpen] = useState(false);
+    const [existingMembers, setExistingMembers] = useState<any[]>([]);
 
     const { isModelsLoaded } = useFaceApi();
 
-    // Fetch roles
+    // Fetch roles and existing members
     useEffect(() => {
-        const loadRoles = async () => {
+        const loadData = async () => {
             try {
                 // Set default role
                 setAvailableRoles(['Staff']);
                 setFormData(prev => ({ ...prev, role: 'Staff' }));
+
+                // Fetch existing members for duplicate check
+                const res = await fetch('/api/attendance?action=members');
+                const data = await res.json();
+                if (data.success && Array.isArray(data.members)) {
+                    setExistingMembers(data.members);
+                }
             } catch (err) {
                 console.error('Failed to load data', err);
                 setAvailableRoles(['Staff']);
@@ -37,7 +45,7 @@ export default function AddAttendanceContent() {
                 setIsLoadingRoles(false);
             }
         };
-        loadRoles();
+        loadData();
     }, []);
 
     const handleFaceDetected = (descriptor: Float32Array, image: string) => {
@@ -311,6 +319,7 @@ export default function AddAttendanceContent() {
                 isOpen={isEnrollModalOpen}
                 onClose={() => setIsEnrollModalOpen(false)}
                 onEnroll={handleFaceDetected}
+                existingMembers={existingMembers}
             />
         </div >
     );
