@@ -96,6 +96,7 @@ export default function AddAttendanceContent() {
     // Location Logic
     const [locationStatus, setLocationStatus] = useState<'loading' | 'allowed' | 'denied' | 'out-of-range' | 'error'>('loading');
     const [distance, setDistance] = useState<number | null>(null);
+    const [accuracy, setAccuracy] = useState<number | null>(null);
     const [branchLocation, setBranchLocation] = useState<{ lat: number, lng: number, radius: number } | null>(null);
 
     const checkLocation = async () => {
@@ -123,6 +124,8 @@ export default function AddAttendanceContent() {
                 (position) => {
                     const userLat = position.coords.latitude;
                     const userLng = position.coords.longitude;
+                    const acc = position.coords.accuracy;
+                    setAccuracy(Math.round(acc));
 
                     // Haversine formula
                     const R = 6371e3;
@@ -186,6 +189,7 @@ export default function AddAttendanceContent() {
                     <p className="text-gray-600 mb-6">
                         {locationStatus === 'denied' && "Please enable location access to add members."}
                         {locationStatus === 'out-of-range' && `You are ${distance}m away. You must be within ${branchLocation?.radius}m of the branch.`}
+                        {locationStatus === 'out-of-range' && accuracy && <span className="block text-sm mt-1 text-gray-500">(GPS Accuracy: ±{accuracy}m)</span>}
                         {locationStatus === 'error' && "Unable to verify your location. Please try again."}
                     </p>
                     <button

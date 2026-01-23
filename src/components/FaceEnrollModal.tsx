@@ -3,6 +3,7 @@
 import { useState, Fragment } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon, CheckCircleIcon, FaceSmileIcon } from '@heroicons/react/24/outline';
+import { toast } from 'react-hot-toast';
 import FaceCamera from './FaceCamera';
 import * as faceapi from 'face-api.js';
 
@@ -25,7 +26,10 @@ export default function FaceEnrollModal({ isOpen, onClose, onEnroll, existingMem
                 if (member.faceDescriptor && member.faceDescriptor.length > 0) {
                     const distance = faceapi.euclideanDistance(descriptor, member.faceDescriptor);
                     if (distance < 0.6) { // Threshold for match
-                        alert(`This face is already registered to ${member.fullName} (ID: ${member.employeeId})`);
+                        toast.error(`This face is already registered to ${member.fullName} (ID: ${member.employeeId})`, {
+                            duration: 4000,
+                            position: 'top-center',
+                        });
                         return; // Block enrollment
                     }
                 }
