@@ -1,5 +1,10 @@
 import DashboardContent from '@/components/branch/DashboardContent';
+import { FaceApiProvider } from '@/context/FaceApiContext';
 
 export default function Page() {
-  return <DashboardContent />;
+  return (
+    <FaceApiProvider>
+      <DashboardContent />
+    </FaceApiProvider>
+  );
 }

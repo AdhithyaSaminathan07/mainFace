@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import * as faceapi from 'face-api.js';
+// import * as faceapi from 'face-api.js'; // Removed for dynamic import
 
 interface FaceApiContextType {
     isModelsLoaded: boolean;
@@ -27,8 +27,10 @@ export const FaceApiProvider: React.FC<FaceApiProviderProps> = ({ children }) =>
         const loadModels = async () => {
             const MODEL_URL = '/models';
             try {
-                if (faceapi.nets.ssdMobilenetv1.isLoaded &&
-                    faceapi.nets.tinyFaceDetector.isLoaded &&
+                // Dynamic import
+                const faceapi = (await import('face-api.js')).default;
+
+                if (faceapi.nets.tinyFaceDetector.isLoaded &&
                     faceapi.nets.faceLandmark68Net.isLoaded &&
                     faceapi.nets.faceRecognitionNet.isLoaded) {
                     setIsModelsLoaded(true);
@@ -36,13 +38,13 @@ export const FaceApiProvider: React.FC<FaceApiProviderProps> = ({ children }) =>
                 }
 
                 await Promise.all([
-                    faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
+                    // faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL), // Heavy, not used by FaceCamera (uses TinyFace)
                     faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
                     faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
                     faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
                 ]);
                 setIsModelsLoaded(true);
-                console.log('FaceAPI models loaded globally');
+                console.log('FaceAPI models loaded (Lazy)');
             } catch (err: any) {
                 console.error('Failed to load FaceAPI models:', err);
                 setError(err.message || 'Failed to load face recognition models');

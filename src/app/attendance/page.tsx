@@ -1,5 +1,10 @@
 import AddAttendanceContent from '@/components/branch/AddAttendanceContent';
+import { FaceApiProvider } from '@/context/FaceApiContext';
 
 export default function AttendancePage() {
-    return <AddAttendanceContent />;
+    return (
+        <FaceApiProvider>
+            <AddAttendanceContent />
+        </FaceApiProvider>
+    );
 }

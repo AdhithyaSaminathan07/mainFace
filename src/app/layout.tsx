@@ -4,7 +4,7 @@ import "./globals.css";
 import { Toaster } from 'react-hot-toast';
 import Sidebar from '@/components/Sidebar';
 
-import { FaceApiProvider } from '@/context/FaceApiContext';
+
 
 // const geistSans = Geist({
 //   variable: "--font-geist-sans",
@@ -31,17 +31,15 @@ export default function RootLayout({
       <body
         className={`antialiased bg-gray-50`}
       >
-        <FaceApiProvider>
-          <div className="flex min-h-screen">
-            <Sidebar />
-            <main className="flex-1 lg:pl-64 transition-all duration-300">
-              <div className="p-4 lg:p-8 max-w-7xl mx-auto">
-                <Toaster position="top-right" />
-                {children}
-              </div>
-            </main>
-          </div>
-        </FaceApiProvider>
+        <div className="flex min-h-screen">
+          <Sidebar />
+          <main className="flex-1 lg:pl-64 transition-all duration-300">
+            <div className="p-4 lg:p-8 max-w-7xl mx-auto">
+              <Toaster position="top-right" />
+              {children}
+            </div>
+          </main>
+        </div>
       </body>
     </html>
   );
