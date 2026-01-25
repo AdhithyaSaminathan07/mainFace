@@ -5,7 +5,8 @@ import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon, CheckCircleIcon, FaceSmileIcon } from '@heroicons/react/24/outline';
 import { toast } from 'react-hot-toast';
 import FaceCamera from './FaceCamera';
-import * as faceapi from 'face-api.js';
+// import * as faceapi from 'face-api.js'; // REMOVED: Use from context
+import { useFaceApi } from '@/context/FaceApiContext';
 
 interface FaceEnrollModalProps {
     isOpen: boolean;
@@ -18,13 +19,14 @@ export default function FaceEnrollModal({ isOpen, onClose, onEnroll, existingMem
     const [qualityScore, setQualityScore] = useState(0);
     const [qualityMetrics, setQualityMetrics] = useState({ fps: 0, resolution: '0x0', angle: 'N/A' });
     const [isCaptured, setIsCaptured] = useState(false);
+    const { faceApi } = useFaceApi();
 
     const handleFaceDetected = (descriptor: Float32Array, image: string) => {
         // Check for duplicates
-        if (existingMembers && existingMembers.length > 0) {
+        if (existingMembers && existingMembers.length > 0 && faceApi) {
             for (const member of existingMembers) {
                 if (member.faceDescriptor && member.faceDescriptor.length > 0) {
-                    const distance = faceapi.euclideanDistance(descriptor, member.faceDescriptor);
+                    const distance = faceApi.euclideanDistance(descriptor, member.faceDescriptor);
                     if (distance < 0.6) { // Threshold for match
                         toast.error(`This face is already registered to ${member.fullName} (ID: ${member.employeeId})`, {
                             duration: 4000,

@@ -6,11 +6,13 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 interface FaceApiContextType {
     isModelsLoaded: boolean;
     error: string | null;
+    faceApi: any;
 }
 
 const FaceApiContext = createContext<FaceApiContextType>({
     isModelsLoaded: false,
     error: null,
+    faceApi: null,
 });
 
 export const useFaceApi = () => useContext(FaceApiContext);
@@ -22,13 +24,17 @@ interface FaceApiProviderProps {
 export const FaceApiProvider: React.FC<FaceApiProviderProps> = ({ children }) => {
     const [isModelsLoaded, setIsModelsLoaded] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [faceApiInstance, setFaceApiInstance] = useState<any>(null);
 
     useEffect(() => {
         const loadModels = async () => {
             const MODEL_URL = '/models';
             try {
                 // Dynamic import
-                const faceapi = (await import('face-api.js')).default;
+                const faceapiModule = await import('face-api.js');
+                // Check if 'default' exists, otherwise use module namespace
+                const faceapi = (faceapiModule as any).default || faceapiModule;
+                setFaceApiInstance(faceapi);
 
                 if (faceapi.nets.tinyFaceDetector.isLoaded &&
                     faceapi.nets.faceLandmark68Net.isLoaded &&
@@ -55,7 +61,7 @@ export const FaceApiProvider: React.FC<FaceApiProviderProps> = ({ children }) =>
     }, []);
 
     return (
-        <FaceApiContext.Provider value={{ isModelsLoaded, error }}>
+        <FaceApiContext.Provider value={{ isModelsLoaded, error, faceApi: faceApiInstance }}>
             {children}
         </FaceApiContext.Provider>
     );
