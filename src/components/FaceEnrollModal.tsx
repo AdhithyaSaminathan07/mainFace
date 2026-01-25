@@ -24,17 +24,24 @@ export default function FaceEnrollModal({ isOpen, onClose, onEnroll, existingMem
     const handleFaceDetected = (descriptor: Float32Array, image: string) => {
         // Check for duplicates
         if (existingMembers && existingMembers.length > 0 && faceApi) {
-            for (const member of existingMembers) {
-                if (member.faceDescriptor && member.faceDescriptor.length > 0) {
-                    const distance = faceApi.euclideanDistance(descriptor, member.faceDescriptor);
-                    if (distance < 0.6) { // Threshold for match
-                        toast.error(`This face is already registered to ${member.fullName} (ID: ${member.employeeId})`, {
-                            duration: 4000,
-                            position: 'top-center',
-                        });
-                        return; // Block enrollment
+            try {
+                for (const member of existingMembers) {
+                    if (member.faceDescriptor && member.faceDescriptor.length > 0) {
+                        // Ensure compatibility with face-api.js
+                        const storedDescriptor = new Float32Array(member.faceDescriptor);
+                        const distance = faceApi.euclideanDistance(descriptor, storedDescriptor);
+
+                        if (distance < 0.5) { // Threshold for match (0.6 is loose, 0.4 is strict)
+                            toast.error(`This face is already registered to ${member.fullName} (ID: ${member.employeeId})`, {
+                                duration: 4000,
+                                position: 'top-center',
+                            });
+                            return; // Block enrollment
+                        }
                     }
                 }
+            } catch (err: any) {
+                console.error('Duplicate check error (non-blocking):', err);
             }
         }
 

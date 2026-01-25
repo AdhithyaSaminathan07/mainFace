@@ -128,11 +128,11 @@ export default function FaceCamera({ onFaceDetected, onFaceMatch, labeledDescrip
                     const centerX = box.x + box.width / 2;
                     const centerY = box.y + box.height / 2;
 
-                    // 1. Center Check
-                    const isCentered = Math.abs(centerX - width / 2) < width * 0.15 && Math.abs(centerY - height / 2) < height * 0.15;
+                    // 1. Center Check (Relaxed)
+                    const isCentered = Math.abs(centerX - width / 2) < width * 0.25 && Math.abs(centerY - height / 2) < height * 0.25;
 
-                    // 2. Distance Check (Size)
-                    const isGoodDistance = box.width > width * 0.25 && box.width < width * 0.7;
+                    // 2. Distance Check (Size) (Relaxed)
+                    const isGoodDistance = box.width > width * 0.15 && box.width < width * 0.85;
 
                     // 3. Head Pose (Look Straight) Check
                     // Nose tip: 30, Left Eye Outer: 36, Right Eye Outer: 45
@@ -148,13 +148,14 @@ export default function FaceCamera({ onFaceDetected, onFaceMatch, labeledDescrip
                     const distToRight = Math.abs(rightEye.x - nose.x);
                     const ratio = distToLeft / (distToRight || 1); // Avoid div by zero
 
-                    const isLookingStraight = ratio > 0.5 && ratio < 2.0;
+                    // Relaxed ratio for easier capture
+                    const isLookingStraight = ratio > 0.2 && ratio < 5.0;
 
                     // Calculate Quality Score (0-100)
                     let score = detection.detection.score * 100;
                     if (!isCentered) score -= 20;
                     if (!isGoodDistance) score -= 20;
-                    if (!isLookingStraight) score -= 30;
+                    if (!isLookingStraight) score -= 10; // Reduced penalty
                     score = Math.max(0, Math.min(100, score));
 
                     if (onQualityChange) {
@@ -199,7 +200,7 @@ export default function FaceCamera({ onFaceDetected, onFaceMatch, labeledDescrip
                     }
 
                     if (!isGoodDistance) {
-                        setMessage(box.width < width * 0.25 ? 'Move closer' : 'Move back');
+                        setMessage(box.width < width * 0.15 ? 'Move closer' : 'Move back');
                         stabilityCounter.current = 0;
                     } else if (!isCentered) {
                         setMessage('Center your face');
