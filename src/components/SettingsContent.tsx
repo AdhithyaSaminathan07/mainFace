@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { MapPinIcon, ShieldCheckIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 
@@ -34,7 +34,7 @@ export default function SettingsContent() {
         fetchSettings();
     }, []);
 
-    const handleGetCurrentLocation = async () => {
+    const handleGetCurrentLocation = useCallback(async () => {
         if (!navigator.geolocation) {
             toast.error('Geolocation is not supported by your browser');
             return;
@@ -49,12 +49,12 @@ export default function SettingsContent() {
         };
 
         try {
-            // Attempt 1: High Accuracy
+            // Attempt 1: High Accuracy (Fast Timeout)
             try {
                 const position = await getPosition({
                     enableHighAccuracy: true,
-                    timeout: 10000,
-                    maximumAge: 0
+                    timeout: 3000, // Reduced to 3s for faster fallback
+                    maximumAge: 10000 // Allow cached positions (10s)
                 });
 
                 toast.dismiss(toastId);
@@ -63,17 +63,17 @@ export default function SettingsContent() {
                     latitude: position.coords.latitude.toString(),
                     longitude: position.coords.longitude.toString()
                 }));
-                toast.success('Location fetched successfully (GPS)');
+                toast.success('Location fetched successfully');
                 return;
             } catch (err) {
-                console.warn('High accuracy failed, trying low accuracy...', err);
+                console.warn('High accuracy failed/timed out, trying low accuracy...', err);
             }
 
             // Attempt 2: Low Accuracy (Fallback)
             const position = await getPosition({
                 enableHighAccuracy: false,
                 timeout: 10000,
-                maximumAge: 0
+                maximumAge: 10000 // Allow cached positions
             });
 
             toast.dismiss(toastId);
@@ -101,9 +101,9 @@ export default function SettingsContent() {
                     toast.error('Failed to fetch location');
             }
         }
-    };
+    }, []);
 
-    const handleGetCurrentIP = async () => {
+    const handleGetCurrentIP = useCallback(async () => {
         const toastId = toast.loading('Fetching IP address...');
         try {
             const res = await fetch('/api/utils/my-ip');
@@ -118,9 +118,9 @@ export default function SettingsContent() {
             console.error('Error fetching IP:', error);
             toast.error('Error fetching IP', { id: toastId });
         }
-    };
+    }, []);
 
-    const handleSave = async () => {
+    const handleSave = useCallback(async () => {
         const toastId = toast.loading('Saving settings...');
         try {
             const res = await fetch('/api/settings/location', {
@@ -148,7 +148,7 @@ export default function SettingsContent() {
             console.error('Error saving settings:', error);
             toast.error('Error saving settings', { id: toastId });
         }
-    };
+    }, [settings]);
 
     return (
         <div className="space-y-6">
