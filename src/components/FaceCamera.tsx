@@ -24,7 +24,7 @@ export default function FaceCamera({ onFaceDetected, onFaceMatch, labeledDescrip
     // Stability tracking
     const stabilityCounter = useRef(0);
     const lastDescriptor = useRef<Float32Array | null>(null);
-    const STABILITY_THRESHOLD = 15; // Approx 1-2 seconds at 100ms intervals
+    const STABILITY_THRESHOLD = 5; // Reduced from 15 for faster capture (~0.5s)
 
     useEffect(() => {
         if (isModelsLoaded && faceApi) {
